@@ -80,11 +80,52 @@ const App: React.FC = () => {
         <BeneficiaryList data={filteredData} />
       </main>
 
+      {/* Footer Section */}
       <footer className="bg-white border-t border-gray-200 mt-auto">
-        <div className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
-          <p className="text-center text-gray-500 text-sm">
-            &copy; {new Date().getFullYear()} Krushi Sahay Portal. Data provided for informational purposes.
-          </p>
+        <div className="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
+          
+          {/* Copyright Text */}
+          <div className="text-center mb-8">
+            <p className="text-gray-400 text-xs">
+              &copy; {new Date().getFullYear()} Krushi Sahay Portal. Data provided for informational purposes only.
+            </p>
+          </div>
+
+          {/* Branding Badge - Prajapati Mobile (Responsive) */}
+          <div className="flex justify-center w-full">
+            <div className="flex flex-col sm:flex-row items-center w-full max-w-xs sm:max-w-none sm:w-auto bg-gradient-to-br from-emerald-50 to-slate-50 border border-emerald-100 rounded-2xl px-6 py-4 shadow-sm hover:shadow-md transition-shadow duration-300">
+              
+              {/* Brand Name */}
+              <div className="flex flex-col items-center sm:items-start sm:mr-6">
+                <span className="text-[10px] uppercase tracking-widest text-emerald-600 font-semibold mb-1">
+                  Created By
+                </span>
+                <span className="text-gray-900 font-bold text-lg tracking-tight leading-none text-center sm:text-left">
+                  Prajapati Mobile
+                </span>
+              </div>
+
+              {/* Dividers: Horizontal for Mobile, Vertical for Desktop */}
+              <div className="w-16 h-px bg-emerald-200 my-4 sm:hidden"></div>
+              <div className="hidden sm:block w-px h-10 bg-gray-300 mr-6"></div>
+
+              {/* Contact Link */}
+              <a href="tel:+917990980744" className="flex items-center group w-full sm:w-auto justify-center sm:justify-start">
+                <div className="bg-emerald-100 text-emerald-600 p-2.5 rounded-full mr-3 group-hover:bg-emerald-600 group-hover:text-white transition-colors duration-300 shrink-0">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                    <path d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 006.105 6.105l.774-1.548a1 1 0 011.059-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z" />
+                  </svg>
+                </div>
+                <div className="flex flex-col items-start">
+                  <span className="text-[10px] text-gray-500 font-medium">Contact</span>
+                  <span className="text-emerald-700 font-bold font-mono text-base">
+                    +91 79909 80744
+                  </span>
+                </div>
+              </a>
+
+            </div>
+          </div>
         </div>
       </footer>
     </div>

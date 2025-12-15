@@ -5,6 +5,18 @@ interface BeneficiaryListProps {
   data: Beneficiary[];
 }
 
+// Helper to mask application number (e.g., 252620000758042 -> ••••••8042)
+const formatAppNumber = (appNo: string) => {
+  if (!appNo || appNo.length <= 4) return appNo;
+  const last4 = appNo.slice(-4);
+  return (
+    <span className="font-mono">
+      <span className="text-gray-300 tracking-widest text-xs align-middle">•••••••••••</span>
+      <span className="text-emerald-700 font-bold ml-1">{last4}</span>
+    </span>
+  );
+};
+
 const BeneficiaryList: React.FC<BeneficiaryListProps> = ({ data }) => {
   if (data.length === 0) {
     return (
@@ -37,7 +49,9 @@ const BeneficiaryList: React.FC<BeneficiaryListProps> = ({ data }) => {
               {data.map((item) => (
                 <tr key={item.id} className="hover:bg-emerald-50 transition-colors duration-150">
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{item.id}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-emerald-700">{item.applicationNo}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                    {formatAppNumber(item.applicationNo)}
+                  </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-medium">{item.name}</td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{item.accountNo}</td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{item.village}</td>
@@ -58,8 +72,9 @@ const BeneficiaryList: React.FC<BeneficiaryListProps> = ({ data }) => {
                 <span className="text-xs text-gray-400">Acc: {item.accountNo}</span>
               </div>
               <h3 className="text-lg font-semibold text-gray-800 mb-1">{item.name}</h3>
-              <div className="text-sm text-gray-600 mb-1">
-                <span className="font-medium">App No:</span> {item.applicationNo}
+              <div className="text-sm text-gray-600 mb-1 flex items-center">
+                <span className="font-medium mr-2">App No:</span> 
+                {formatAppNumber(item.applicationNo)}
               </div>
               <div className="text-sm text-gray-500">
                 <span className="font-medium">Village:</span> {item.village}
