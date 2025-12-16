@@ -3,9 +3,10 @@ import React from 'react';
 interface SearchBarProps {
   value: string;
   onChange: (value: string) => void;
+  onClick?: () => void;
 }
 
-const SearchBar: React.FC<SearchBarProps> = ({ value, onChange }) => {
+const SearchBar: React.FC<SearchBarProps> = ({ value, onChange, onClick }) => {
   return (
     <div className="w-full max-w-3xl mx-auto -mt-6 px-4 mb-8 z-10 relative">
       <div className="bg-white rounded-lg shadow-xl flex items-center p-2 border border-gray-100">
@@ -20,6 +21,7 @@ const SearchBar: React.FC<SearchBarProps> = ({ value, onChange }) => {
           placeholder="Search by Name, Application No, or Account No..."
           value={value}
           onChange={(e) => onChange(e.target.value)}
+          onClick={onClick}
         />
         {value && (
           <button 
