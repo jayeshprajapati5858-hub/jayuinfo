@@ -97,8 +97,6 @@ const App: React.FC = () => {
           onClick={handleSearchInteraction}
         />
         
-        {/* Inline ad removed as per request to use modal instead */}
-
         <BeneficiaryList data={filteredData} />
       </main>
 
@@ -154,10 +152,11 @@ const App: React.FC = () => {
       {/* Ad Modal Overlay */}
       {showAdModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm transition-opacity animate-in fade-in duration-200">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden relative transform transition-all animate-in zoom-in-95 duration-200">
+          {/* max-w-4xl to accommodate 728px ad */}
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl overflow-hidden relative transform transition-all animate-in zoom-in-95 duration-200 flex flex-col">
             
             {/* Modal Header */}
-            <div className="bg-gray-50 px-4 py-3 border-b border-gray-100 flex justify-between items-center">
+            <div className="bg-gray-50 px-4 py-3 border-b border-gray-100 flex justify-between items-center shrink-0">
               <span className="text-xs font-semibold uppercase tracking-widest text-gray-400">Sponsored</span>
               <button 
                 onClick={() => setShowAdModal(false)}
@@ -169,13 +168,13 @@ const App: React.FC = () => {
               </button>
             </div>
 
-            {/* Modal Content */}
-            <div className="p-4">
+            {/* Modal Content with Horizontal Scroll for large ad */}
+            <div className="p-4 overflow-x-auto">
               <GoogleAd />
             </div>
 
             {/* Modal Footer / Action */}
-            <div className="p-4 pt-0">
+            <div className="p-4 pt-0 shrink-0">
               <button 
                 onClick={() => setShowAdModal(false)}
                 className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-medium py-3 px-4 rounded-xl transition-colors shadow-sm text-sm"

@@ -1,39 +1,63 @@
 import React, { useEffect, useRef } from 'react';
 
 const GoogleAd: React.FC = () => {
-  const adRef = useRef<HTMLModElement>(null);
+  const iframeRef = useRef<HTMLIFrameElement>(null);
 
   useEffect(() => {
-    // This pushes the ad request to Google's queue when the component mounts.
-    // The try-catch block prevents application crashes if AdBlockers block the script.
+    const iframe = iframeRef.current;
+    if (!iframe) return;
+
+    const doc = iframe.contentWindow?.document;
+    if (!doc) return;
+
+    // Ad Configuration
+    const adContent = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <style>
+          body { margin: 0; padding: 0; display: flex; justify-content: center; align-items: center; background-color: #f8fafc; }
+        </style>
+      </head>
+      <body>
+        <script type="text/javascript">
+          atOptions = {
+            'key' : '97fc9278d2d7f7a9983b963c24c16fc8',
+            'format' : 'iframe',
+            'height' : 90,
+            'width' : 728,
+            'params' : {}
+          };
+        </script>
+        <script type="text/javascript" src="https://www.highperformanceformat.com/97fc9278d2d7f7a9983b963c24c16fc8/invoke.js"></script>
+      </body>
+      </html>
+    `;
+
     try {
-      const adsbygoogle = (window as any).adsbygoogle || [];
-      adsbygoogle.push({});
+      doc.open();
+      doc.write(adContent);
+      doc.close();
     } catch (e) {
-      console.error('AdSense error:', e);
+      console.error("Error loading ad script", e);
     }
   }, []);
 
   return (
-    <div className="w-full bg-slate-50 border border-slate-100 rounded-lg overflow-hidden min-h-[250px] flex items-center justify-center relative">
-        {/* AdSense Unit */}
-        {/* 
-            TODO: Replace data-ad-slot="1234567890" with your actual Ad Slot ID 
-            generated from the Google AdSense Dashboard.
-        */}
-        <ins className="adsbygoogle"
-            style={{ display: 'block', width: '100%' }}
-            data-ad-client="ca-pub-8835318705253846"
-            data-ad-slot="1234567890"
-            data-ad-format="auto"
-            data-full-width-responsive="true"
-            ref={adRef}
-        />
-        
-        {/* Fallback background/text if ad is empty or loading */}
-        <div className="absolute inset-0 -z-10 flex flex-col items-center justify-center bg-gray-50 text-gray-300">
-           <span className="text-xs uppercase tracking-widest font-semibold">Advertisement</span>
-        </div>
+    <div className="w-full bg-slate-50 border border-slate-100 rounded-lg overflow-hidden flex items-center justify-center min-h-[100px]">
+       {/* 
+         We use an iframe to isolate the ad script. 
+         The width is set to 728px to match the ad config.
+         On mobile, the parent container in App.tsx handles scrolling.
+       */}
+       <iframe 
+         ref={iframeRef} 
+         title="Sponsored Content"
+         width="728" 
+         height="100" 
+         style={{ border: 'none', overflow: 'hidden' }}
+         scrolling="no"
+       />
     </div>
   );
 };
