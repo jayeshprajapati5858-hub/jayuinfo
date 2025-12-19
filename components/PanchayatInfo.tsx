@@ -2,7 +2,7 @@ import React from 'react';
 
 const PanchayatInfo: React.FC = () => {
   return (
-    <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 -mt-6 mb-8 relative z-20">
+    <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-6 mb-8 relative z-20">
       <div className="bg-white rounded-xl shadow-lg border-t-4 border-emerald-600 overflow-hidden">
         
         {/* Header of the Card */}

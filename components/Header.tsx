@@ -6,24 +6,24 @@ interface HeaderProps {
 
 const Header: React.FC<HeaderProps> = ({ totalCount }) => {
   return (
-    <header className="bg-emerald-700 shadow-lg pb-12 pt-6">
+    <header className="bg-emerald-700 pt-6 pb-6">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0">
           
           {/* Brand Section */}
           <div className="flex items-center gap-3">
-             {/* Simple Icon */}
+             {/* Building Icon / Logo */}
             <div className="bg-white/10 p-2 rounded-lg backdrop-blur-sm">
               <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                <path strokeLinecap="round" strokeLinejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
               </svg>
             </div>
             <div className="text-center md:text-left">
               <h1 className="text-2xl font-bold text-white tracking-wide">
-                કૃષિ રાહત પેકેજ
+                ગ્રામ પંચાયત કાર્યાલય: ભરાડા
               </h1>
               <p className="text-emerald-100 text-xs font-medium uppercase tracking-widest opacity-90">
-                DBT Beneficiary Portal
+                Digital Gram Panchayat
               </p>
             </div>
           </div>

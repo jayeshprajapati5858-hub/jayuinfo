@@ -4,6 +4,8 @@ import SearchBar from './components/SearchBar';
 import BeneficiaryList from './components/BeneficiaryList';
 import GoogleAd from './components/GoogleAd';
 import PanchayatInfo from './components/PanchayatInfo';
+import ImportantLinks from './components/ImportantLinks';
+import WaterSupply from './components/WaterSupply';
 import { beneficiaryData } from './data/beneficiaries';
 
 // Helper to create a phonetic skeleton for fuzzy search (English & Gujarati)
@@ -41,6 +43,7 @@ const normalizeToSkeleton = (text: string) => {
 
 const App: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
+  const [currentView, setCurrentView] = useState<'home' | 'links' | 'water'>('home');
 
   // Filter logic: checks name, application number, account number, village, or ID
   const filteredData = useMemo(() => {
@@ -75,22 +78,90 @@ const App: React.FC = () => {
     <div className="min-h-screen flex flex-col bg-slate-50 relative">
       <Header totalCount={beneficiaryData.length} />
       
-      <main className="flex-grow">
-        {/* New Panchayat Info Dashboard */}
-        <PanchayatInfo />
+      {/* Navigation Tabs */}
+      <div className="bg-emerald-700 shadow-md sticky top-0 z-30">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex overflow-x-auto no-scrollbar">
+          <button
+            onClick={() => setCurrentView('home')}
+            className={`flex-1 sm:flex-none sm:min-w-[120px] py-4 text-center font-medium text-sm sm:text-base transition-all duration-200 border-b-4 shrink-0 px-2 ${
+              currentView === 'home'
+                ? 'border-white text-white'
+                : 'border-transparent text-emerald-100 hover:text-white hover:bg-emerald-600'
+            }`}
+          >
+            <span className="flex items-center justify-center gap-2">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+              </svg>
+              Home
+            </span>
+          </button>
+          
+          <button
+            onClick={() => setCurrentView('water')}
+            className={`flex-1 sm:flex-none sm:min-w-[120px] py-4 text-center font-medium text-sm sm:text-base transition-all duration-200 border-b-4 shrink-0 px-2 ${
+              currentView === 'water'
+                ? 'border-white text-white'
+                : 'border-transparent text-emerald-100 hover:text-white hover:bg-emerald-600'
+            }`}
+          >
+            <span className="flex items-center justify-center gap-2">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" />
+              </svg>
+              Water Supply
+            </span>
+          </button>
 
-        <SearchBar 
-          value={searchQuery} 
-          onChange={setSearchQuery} 
-        />
-        
-        <BeneficiaryList data={filteredData} />
-
-        {/* Ad Placement: Bottom of list, unobtrusive but visible */}
-        <div className="max-w-4xl mx-auto px-4 mb-8 overflow-x-auto">
-          <div className="text-center text-xs text-gray-400 mb-2 uppercase tracking-widest">Sponsored</div>
-          <GoogleAd />
+          <button
+            onClick={() => setCurrentView('links')}
+            className={`flex-1 sm:flex-none sm:min-w-[120px] py-4 text-center font-medium text-sm sm:text-base transition-all duration-200 border-b-4 shrink-0 px-2 ${
+              currentView === 'links'
+                ? 'border-white text-white'
+                : 'border-transparent text-emerald-100 hover:text-white hover:bg-emerald-600'
+            }`}
+          >
+            <span className="flex items-center justify-center gap-2">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+              </svg>
+              Useful Links
+            </span>
+          </button>
         </div>
+      </div>
+      
+      <main className="flex-grow">
+        {currentView === 'home' && (
+          <div className="animate-fade-in">
+            {/* Home View */}
+            <PanchayatInfo />
+            <div className="mt-8">
+              <SearchBar value={searchQuery} onChange={setSearchQuery} />
+              <BeneficiaryList data={filteredData} />
+            </div>
+            {/* Ad Placement for Home View (Bottom) */}
+            <div className="max-w-4xl mx-auto px-4 mb-8 overflow-x-auto">
+              <div className="text-center text-xs text-gray-400 mb-2 uppercase tracking-widest">Sponsored</div>
+              <GoogleAd />
+            </div>
+          </div>
+        )}
+
+        {currentView === 'water' && (
+           <WaterSupply />
+        )}
+
+        {currentView === 'links' && (
+          <div className="animate-fade-in">
+            {/* Links View */}
+            <ImportantLinks />
+            <div className="max-w-4xl mx-auto px-4 mt-8">
+              <div className="text-center text-xs text-gray-400 mb-2 uppercase tracking-widest">Sponsored</div>
+              <GoogleAd />
+            </div>
+          </div>
+        )}
       </main>
 
       {/* Footer Section */}
