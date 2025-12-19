@@ -3,6 +3,7 @@ import Header from './components/Header';
 import SearchBar from './components/SearchBar';
 import BeneficiaryList from './components/BeneficiaryList';
 import GoogleAd from './components/GoogleAd';
+import PanchayatInfo from './components/PanchayatInfo';
 import { beneficiaryData } from './data/beneficiaries';
 
 // Helper to create a phonetic skeleton for fuzzy search (English & Gujarati)
@@ -40,22 +41,6 @@ const normalizeToSkeleton = (text: string) => {
 
 const App: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
-  
-  // Ad Modal State
-  const [showAdModal, setShowAdModal] = useState(false);
-  const [hasAdBeenShown, setHasAdBeenShown] = useState(false);
-
-  // Handle first-time interaction with the search bar
-  const handleSearchInteraction = () => {
-    if (!hasAdBeenShown) {
-      setShowAdModal(true);
-      setHasAdBeenShown(true);
-      // Blur input to force user to interact with the modal first
-      if (document.activeElement instanceof HTMLElement) {
-        document.activeElement.blur();
-      }
-    }
-  };
 
   // Filter logic: checks name, application number, account number, village, or ID
   const filteredData = useMemo(() => {
@@ -91,13 +76,21 @@ const App: React.FC = () => {
       <Header totalCount={beneficiaryData.length} />
       
       <main className="flex-grow">
+        {/* New Panchayat Info Dashboard */}
+        <PanchayatInfo />
+
         <SearchBar 
           value={searchQuery} 
           onChange={setSearchQuery} 
-          onClick={handleSearchInteraction}
         />
         
         <BeneficiaryList data={filteredData} />
+
+        {/* Ad Placement: Bottom of list, unobtrusive but visible */}
+        <div className="max-w-4xl mx-auto px-4 mb-8 overflow-x-auto">
+          <div className="text-center text-xs text-gray-400 mb-2 uppercase tracking-widest">Sponsored</div>
+          <GoogleAd />
+        </div>
       </main>
 
       {/* Footer Section */}
@@ -148,44 +141,6 @@ const App: React.FC = () => {
           </div>
         </div>
       </footer>
-
-      {/* Ad Modal Overlay */}
-      {showAdModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm transition-opacity animate-in fade-in duration-200">
-          {/* max-w-4xl to accommodate 728px ad */}
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl overflow-hidden relative transform transition-all animate-in zoom-in-95 duration-200 flex flex-col">
-            
-            {/* Modal Header */}
-            <div className="bg-gray-50 px-4 py-3 border-b border-gray-100 flex justify-between items-center shrink-0">
-              <span className="text-xs font-semibold uppercase tracking-widest text-gray-400">Sponsored</span>
-              <button 
-                onClick={() => setShowAdModal(false)}
-                className="text-gray-400 hover:text-gray-600 transition-colors p-1"
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                  <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
-                </svg>
-              </button>
-            </div>
-
-            {/* Modal Content with Horizontal Scroll for large ad */}
-            <div className="p-4 overflow-x-auto">
-              <GoogleAd />
-            </div>
-
-            {/* Modal Footer / Action */}
-            <div className="p-4 pt-0 shrink-0">
-              <button 
-                onClick={() => setShowAdModal(false)}
-                className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-medium py-3 px-4 rounded-xl transition-colors shadow-sm text-sm"
-              >
-                Continue to Search
-              </button>
-            </div>
-            
-          </div>
-        </div>
-      )}
     </div>
   );
 };
