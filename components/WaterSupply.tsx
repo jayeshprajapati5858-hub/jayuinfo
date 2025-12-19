@@ -170,10 +170,10 @@ const WaterSupply: React.FC = () => {
           
           <div className="text-center md:text-left">
             <h2 className="text-2xl font-bold">ગ્રામ પંચાયત પાણી પુરવઠો</h2>
-            <p className="text-blue-100 text-sm opacity-90">Live Water Supply Dashboard</p>
+            <p className="text-blue-100 text-sm opacity-90">લાઈવ પાણી પુરવઠા માહિતી</p>
             <div className="mt-4 flex items-center justify-center md:justify-start gap-2 bg-white/20 w-fit px-3 py-1 rounded-full backdrop-blur-md">
                <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></span>
-               <span className="text-xs font-semibold">સિસ્ટમ લાઈવ છે</span>
+               <span className="text-xs font-semibold">સિસ્ટમ ચાલુ છે</span>
             </div>
           </div>
 
@@ -203,12 +203,12 @@ const WaterSupply: React.FC = () => {
                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
              </div>
              <div>
-                 <p className="text-xs text-gray-400 font-bold uppercase">Operator</p>
+                 <p className="text-xs text-gray-400 font-bold uppercase">ઓપરેટર</p>
                  <p className="font-bold text-gray-800 text-sm">દિનેશભાઈ</p>
              </div>
          </div>
-         <a href="tel:+919876543210" className="bg-green-500 text-white px-4 py-2 rounded-lg text-xs font-bold shadow-green-200 shadow-lg hover:bg-green-600 transition-all">
-             Call Now
+         <a href="tel:+919328088547" className="bg-green-500 text-white px-4 py-2 rounded-lg text-xs font-bold shadow-green-200 shadow-lg hover:bg-green-600 transition-all">
+             કોલ કરો
          </a>
       </div>
 
@@ -281,7 +281,7 @@ const WaterSupply: React.FC = () => {
                            
                            {isAdmin && (
                                <button onClick={() => handleDeleteUpdate(update.id)} className="mt-3 text-xs text-red-500 hover:text-red-700 font-medium">
-                                   Delete Entry
+                                   ડિલીટ
                                </button>
                            )}
                        </div>
@@ -296,7 +296,7 @@ const WaterSupply: React.FC = () => {
          <div className="flex items-center justify-between mb-4 relative z-10">
              <h3 className="text-lg font-bold text-orange-900 flex items-center gap-2">
                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z"/></svg>
-                 ફરિયાદ પેટી (Complaint Box)
+                 ફરિયાદ પેટી
              </h3>
              
              {/* Stylish Button */}
@@ -311,11 +311,11 @@ const WaterSupply: React.FC = () => {
                 `}
              >
                 {showComplaintForm ? (
-                   <>બંધ કરો (Close)</>
+                   <>બંધ કરો</>
                 ) : (
                    <>
                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4"></path></svg>
-                     નવી ફરિયાદ (New)
+                     નવી ફરિયાદ
                    </>
                 )}
              </button>
@@ -326,7 +326,7 @@ const WaterSupply: React.FC = () => {
                  <div className="space-y-3">
                      <input 
                         type="text" 
-                        placeholder="તમારું નામ (Your Name)"
+                        placeholder="તમારું નામ"
                         value={complainerName}
                         onChange={e => setComplainerName(e.target.value)}
                         className="w-full p-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-orange-500 bg-gray-50"
@@ -340,7 +340,7 @@ const WaterSupply: React.FC = () => {
                         required
                      ></textarea>
                      <button type="submit" className="w-full bg-orange-500 text-white py-2.5 rounded-lg text-sm font-bold hover:bg-orange-600 transition-colors shadow-md">
-                         ફરિયાદ મોકલો (Submit)
+                         ફરિયાદ મોકલો
                      </button>
                  </div>
              </form>
@@ -350,7 +350,7 @@ const WaterSupply: React.FC = () => {
          <div className="space-y-3">
              {complaints.length === 0 ? (
                  <p className="text-sm text-orange-800/60 italic text-center py-4 bg-orange-50/50 rounded-lg">
-                    હાલમાં કોઈ ફરિયાદ નથી. (No Complaints)
+                    હાલમાં કોઈ ફરિયાદ નથી.
                  </p>
              ) : (
                  complaints.slice(0, 3).map(complaint => (
@@ -384,7 +384,7 @@ const WaterSupply: React.FC = () => {
              <div className="flex justify-center">
                  {!showLogin ? (
                      <button onClick={() => setShowLogin(true)} className="text-xs text-gray-300 hover:text-gray-500 transition-colors">
-                        Admin Login
+                        એડમિન લોગીન
                      </button>
                  ) : (
                      <div className="flex gap-2 items-center bg-gray-100 p-2 rounded-lg">
@@ -395,7 +395,7 @@ const WaterSupply: React.FC = () => {
                             placeholder="PIN"
                             className="w-20 p-1 text-sm border rounded"
                          />
-                         <button onClick={handleLogin} className="bg-gray-800 text-white text-xs px-3 py-1.5 rounded">Go</button>
+                         <button onClick={handleLogin} className="bg-gray-800 text-white text-xs px-3 py-1.5 rounded">દાખલ</button>
                          <button onClick={() => setShowLogin(false)} className="text-gray-500 text-xs px-2">X</button>
                      </div>
                  )}
@@ -403,15 +403,15 @@ const WaterSupply: React.FC = () => {
           ) : (
               <div className="bg-slate-800 text-white rounded-xl p-6 shadow-2xl">
                   <div className="flex justify-between items-center mb-6">
-                      <h3 className="font-bold text-blue-200">Admin Control Panel</h3>
-                      <button onClick={() => setIsAdmin(false)} className="text-xs bg-red-500 hover:bg-red-600 px-3 py-1 rounded">Logout</button>
+                      <h3 className="font-bold text-blue-200">એડમિન પેનલ</h3>
+                      <button onClick={() => setIsAdmin(false)} className="text-xs bg-red-500 hover:bg-red-600 px-3 py-1 rounded">લોગ આઉટ</button>
                   </div>
 
                   {/* Admin: Notice Board Edit */}
                   <div className="mb-6 bg-slate-700/50 p-4 rounded-lg border border-slate-600">
                       <label className="block text-xs font-bold text-amber-400 mb-2 flex items-center gap-2">
                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z"/></svg>
-                         Update Notice Board (સૂચના લખો)
+                         સૂચના બોર્ડ અપડેટ
                       </label>
                       <textarea
                         value={notice}
@@ -424,7 +424,7 @@ const WaterSupply: React.FC = () => {
 
                   {/* Admin: Tank Level */}
                   <div className="mb-6">
-                      <label className="block text-xs font-bold text-gray-400 mb-2">Tank Level Control ({tankLevel}%)</label>
+                      <label className="block text-xs font-bold text-gray-400 mb-2">ટાંકી લેવલ કંટ્રોલ ({tankLevel}%)</label>
                       <input 
                         type="range" 
                         min="0" 
@@ -434,33 +434,33 @@ const WaterSupply: React.FC = () => {
                         className="w-full h-2 bg-gray-600 rounded-lg appearance-none cursor-pointer accent-blue-500"
                       />
                       <div className="flex justify-between text-[10px] text-gray-500 mt-1">
-                          <span>Empty</span>
-                          <span>Full</span>
+                          <span>ખાલી</span>
+                          <span>ભરેલી</span>
                       </div>
                   </div>
                   
                   {/* Admin: Add Schedule */}
                   <form onSubmit={handleAddUpdate} className="space-y-4 border-t border-gray-700 pt-4">
-                      <p className="text-xs font-bold text-blue-400">Add New Schedule</p>
+                      <p className="text-xs font-bold text-blue-400">નવું શેડ્યૂલ ઉમેરો</p>
                       <div className="space-y-3">
                           <input 
                              type="text" 
                              value={newLineName}
                              onChange={(e) => setNewLineName(e.target.value)}
-                             placeholder="Line Name (e.g. Narmada)"
+                             placeholder="લાઈનનું નામ (દા.ત. નર્મદા)"
                              className="w-full bg-gray-700 border-none text-white text-sm rounded p-2 focus:ring-1 focus:ring-blue-500"
                           />
                           <input 
                              type="text" 
                              value={newArea}
                              onChange={(e) => setNewArea(e.target.value)}
-                             placeholder="Area Name (e.g. Patel Vas)"
+                             placeholder="વિસ્તારનું નામ (દા.ત. પટેલ વાસ)"
                              className="w-full bg-gray-700 border-none text-white text-sm rounded p-2 focus:ring-1 focus:ring-blue-500"
                           />
                           
                           {/* Time Selection with AM/PM */}
                           <div className="bg-gray-700 p-2 rounded-lg">
-                              <label className="block text-[10px] text-gray-400 mb-1">Time Schedule (AM/PM)</label>
+                              <label className="block text-[10px] text-gray-400 mb-1">સમય પત્રક (AM/PM)</label>
                               <div className="flex items-center gap-2">
                                   {/* Start Time */}
                                   <div className="flex-1 flex gap-1">
@@ -480,7 +480,7 @@ const WaterSupply: React.FC = () => {
                                           <option value="PM">PM</option>
                                       </select>
                                   </div>
-                                  <span className="text-gray-400 text-xs">to</span>
+                                  <span className="text-gray-400 text-xs">થી</span>
                                   {/* End Time */}
                                   <div className="flex-1 flex gap-1">
                                       <input 
@@ -507,11 +507,11 @@ const WaterSupply: React.FC = () => {
                              onChange={(e) => setNewStatus(e.target.value as any)}
                              className="w-full bg-gray-700 border-none text-white text-sm rounded p-2 focus:ring-1 focus:ring-blue-500"
                           >
-                             <option value="Upcoming">Upcoming (હવે આવશે)</option>
-                             <option value="Running">Running (ચાલુ છે)</option>
+                             <option value="Upcoming">આવશે</option>
+                             <option value="Running">ચાલુ છે</option>
                           </select>
                       </div>
-                      <button type="submit" className="w-full bg-blue-600 hover:bg-blue-500 py-2 rounded font-bold text-sm shadow-lg">Add Update</button>
+                      <button type="submit" className="w-full bg-blue-600 hover:bg-blue-500 py-2 rounded font-bold text-sm shadow-lg">માહિતી ઉમેરો</button>
                   </form>
               </div>
           )}

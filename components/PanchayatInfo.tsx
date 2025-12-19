@@ -12,7 +12,7 @@ const PanchayatInfo: React.FC = () => {
               <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
               </svg>
-              ગ્રામ પંચાયત કાર્યાલય: ભરાડા
+              ગ્રામ પંચાયત કચેરી: ભરાડા
             </h2>
             <p className="text-emerald-600 text-xs font-semibold uppercase tracking-wider ml-8">
               Gram Panchayat Office: Bharada
@@ -24,7 +24,7 @@ const PanchayatInfo: React.FC = () => {
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
               <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
             </span>
-            <span className="text-xs font-bold text-emerald-800">Office Open</span>
+            <span className="text-xs font-bold text-emerald-800">કાર્યાલય ખુલ્લું છે</span>
           </div>
         </div>
 
@@ -40,7 +40,7 @@ const PanchayatInfo: React.FC = () => {
                 </svg>
               </div>
               <div>
-                <p className="text-xs text-gray-500 font-medium uppercase">સરપંચશ્રી (Sarpanch)</p>
+                <p className="text-xs text-gray-500 font-medium uppercase">સરપંચશ્રી</p>
                 <h3 className="font-bold text-gray-800">શ્રી દિનેશભાઈ ભુવા</h3>
               </div>
             </div>
@@ -59,7 +59,7 @@ const PanchayatInfo: React.FC = () => {
                 </svg>
               </div>
               <div>
-                <p className="text-xs text-gray-500 font-medium uppercase">તલાટી કમ મંત્રી (Talati)</p>
+                <p className="text-xs text-gray-500 font-medium uppercase">તલાટી કમ મંત્રી</p>
                 <h3 className="font-bold text-gray-800">શ્રીમતી તેજલબેન</h3>
               </div>
             </div>
@@ -78,7 +78,7 @@ const PanchayatInfo: React.FC = () => {
                 </svg>
               </div>
               <div>
-                <p className="text-xs text-gray-500 font-medium uppercase">V.C.E. (Computer Op.)</p>
+                <p className="text-xs text-gray-500 font-medium uppercase">V.C.E. (કોમ્પ્યુટર ઓપ.)</p>
                 <h3 className="font-bold text-gray-800">શ્રી જયેશભાઈ પ્રજાપતિ</h3>
               </div>
             </div>
@@ -94,14 +94,14 @@ const PanchayatInfo: React.FC = () => {
         <div className="bg-yellow-50 px-6 py-3 border-t border-yellow-100">
           <div className="flex items-start gap-3">
             <span className="bg-red-500 text-white text-[10px] font-bold px-2 py-1 rounded animate-pulse mt-0.5">
-              NOTICE
+              સૂચના
             </span>
             <div className="flex-1">
               <p className="text-sm text-yellow-900 font-medium">
                 <span className="font-bold">સૂચના:</span> કૃષિ સહાય પેકેજની યાદી નીચે મુજબ છે. જે ખેડૂતોનું નામ યાદીમાં છે તેમણે તાત્કાલિક બેંક DBT ચાલુ કરાવા વિનંતી.
               </p>
               <p className="text-xs text-yellow-700 mt-1">
-                (Note: Farmers listed below are requested to enable Bank DBT immediately.)
+                (નોંધ: યાદીમાં નામ હોય તે ખેડૂતોએ બેંક DBT ચાલુ કરાવવું.)
               </p>
             </div>
           </div>

@@ -52,7 +52,7 @@ const ImportantLinks: React.FC = () => {
     <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-8 mb-8">
       <div className="flex items-center gap-2 mb-6">
         <span className="h-8 w-1.5 bg-emerald-500 rounded-full"></span>
-        <h3 className="text-xl font-bold text-gray-800">કિસાન સુવિધા અને ઉપયોગી લિંક્સ (Quick Links)</h3>
+        <h3 className="text-xl font-bold text-gray-800">ઝડપી લિંક્સ (Quick Links)</h3>
       </div>
       
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -71,7 +71,7 @@ const ImportantLinks: React.FC = () => {
             <p className="text-sm text-gray-500 mt-1 mb-4">{link.subtitle}</p>
             
             <div className="mt-auto flex items-center text-xs text-gray-500 font-bold uppercase tracking-wider group-hover:text-gray-800 bg-white/60 px-3 py-1 rounded-full">
-              Visit Portal
+              પોર્ટલ પર જાઓ
               <svg className="w-3 h-3 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg>
             </div>
           </a>

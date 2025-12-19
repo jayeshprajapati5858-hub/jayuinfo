@@ -56,7 +56,7 @@ const SearchBar: React.FC<SearchBarProps> = ({ value, onChange }) => {
         <input
           type="text"
           className="w-full py-3 px-2 text-lg text-gray-700 placeholder-gray-400 focus:outline-none"
-          placeholder={isListening ? "Listening... (બોલો...)" : "Search by Name, App No, or Account No..."}
+          placeholder={isListening ? "સાંભળી રહ્યું છે... (બોલો...)" : "નામ, અરજી નં અથવા ખાતા નંબર દ્વારા શોધો..."}
           value={value}
           onChange={(e) => onChange(e.target.value)}
         />
@@ -65,7 +65,7 @@ const SearchBar: React.FC<SearchBarProps> = ({ value, onChange }) => {
         <button 
           onClick={startListening}
           className={`p-3 mr-2 rounded-full transition-all duration-300 ${isListening ? 'bg-red-500 text-white animate-pulse' : 'text-gray-400 hover:bg-emerald-50 hover:text-emerald-600'}`}
-          title="Search by Voice"
+          title="અવાજ દ્વારા શોધો"
         >
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"></path>
@@ -84,7 +84,7 @@ const SearchBar: React.FC<SearchBarProps> = ({ value, onChange }) => {
         )}
       </div>
       <p className="mt-2 text-center text-xs text-gray-500">
-        માઈક પર ક્લિક કરો અને નામ બોલો (Click Mic to Speak)
+        બોલવા માટે માઈક પર ક્લિક કરો (Click Mic to Speak)
       </p>
     </div>
   );

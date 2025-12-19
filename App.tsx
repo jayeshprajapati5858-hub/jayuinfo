@@ -6,6 +6,8 @@ import GoogleAd from './components/GoogleAd';
 import PanchayatInfo from './components/PanchayatInfo';
 import ImportantLinks from './components/ImportantLinks';
 import WaterSupply from './components/WaterSupply';
+import EmergencyContacts from './components/EmergencyContacts';
+import PhotoGallery from './components/PhotoGallery';
 import { beneficiaryData } from './data/beneficiaries';
 
 // Helper to create a phonetic skeleton for fuzzy search (English & Gujarati)
@@ -93,7 +95,7 @@ const App: React.FC = () => {
               <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
               </svg>
-              Home
+              મુખ્ય પૃષ્ઠ
             </span>
           </button>
           
@@ -109,7 +111,7 @@ const App: React.FC = () => {
               <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" />
               </svg>
-              Water Supply
+              પાણી પુરવઠો
             </span>
           </button>
 
@@ -125,7 +127,7 @@ const App: React.FC = () => {
               <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
               </svg>
-              Useful Links
+              ઉપયોગી લિંક્સ
             </span>
           </button>
         </div>
@@ -136,13 +138,14 @@ const App: React.FC = () => {
           <div className="animate-fade-in">
             {/* Home View */}
             <PanchayatInfo />
+            
             <div className="mt-8">
               <SearchBar value={searchQuery} onChange={setSearchQuery} />
               <BeneficiaryList data={filteredData} />
             </div>
             {/* Ad Placement for Home View (Bottom) */}
             <div className="max-w-4xl mx-auto px-4 mb-8 overflow-x-auto">
-              <div className="text-center text-xs text-gray-400 mb-2 uppercase tracking-widest">Sponsored</div>
+              <div className="text-center text-xs text-gray-400 mb-2 uppercase tracking-widest">જાહેરાત</div>
               <GoogleAd />
             </div>
           </div>
@@ -154,10 +157,13 @@ const App: React.FC = () => {
 
         {currentView === 'links' && (
           <div className="animate-fade-in">
-            {/* Links View */}
+            {/* Links View - Now includes Emergency & Gallery */}
             <ImportantLinks />
+            <EmergencyContacts />
+            <PhotoGallery />
+            
             <div className="max-w-4xl mx-auto px-4 mt-8">
-              <div className="text-center text-xs text-gray-400 mb-2 uppercase tracking-widest">Sponsored</div>
+              <div className="text-center text-xs text-gray-400 mb-2 uppercase tracking-widest">જાહેરાત</div>
               <GoogleAd />
             </div>
           </div>
@@ -171,7 +177,7 @@ const App: React.FC = () => {
           {/* Copyright Text */}
           <div className="text-center mb-8">
             <p className="text-gray-400 text-xs">
-              &copy; {new Date().getFullYear()} Krushi Sahay Portal. Data provided for informational purposes only.
+              &copy; {new Date().getFullYear()} કૃષિ સહાય પોર્ટલ. માહિતી માત્ર જાણકારી માટે છે.
             </p>
           </div>
 
@@ -182,10 +188,10 @@ const App: React.FC = () => {
               {/* Brand Name */}
               <div className="flex flex-col items-center sm:items-start sm:mr-6">
                 <span className="text-[10px] uppercase tracking-widest text-emerald-600 font-semibold mb-1">
-                  Created By
+                  નિર્માતા
                 </span>
                 <span className="text-gray-900 font-bold text-lg tracking-tight leading-none text-center sm:text-left">
-                  Prajapati Mobile
+                  પ્રજાપતિ મોબાઈલ
                 </span>
               </div>
 
@@ -201,7 +207,7 @@ const App: React.FC = () => {
                   </svg>
                 </div>
                 <div className="flex flex-col items-start">
-                  <span className="text-[10px] text-gray-500 font-medium">Contact</span>
+                  <span className="text-[10px] text-gray-500 font-medium">સંપર્ક</span>
                   <span className="text-emerald-700 font-bold font-mono text-base">
                     +91 79909 80744
                   </span>
