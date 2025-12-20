@@ -1,63 +1,45 @@
 import React, { useEffect, useRef } from 'react';
 
+// Extend window interface to support adsbygoogle
+declare global {
+  interface Window {
+    adsbygoogle: any[];
+  }
+}
+
 const GoogleAd: React.FC = () => {
-  const iframeRef = useRef<HTMLIFrameElement>(null);
+  const adRef = useRef<HTMLModElement>(null);
 
   useEffect(() => {
-    const iframe = iframeRef.current;
-    if (!iframe) return;
-
-    const doc = iframe.contentWindow?.document;
-    if (!doc) return;
-
-    // Ad Configuration
-    const adContent = `
-      <!DOCTYPE html>
-      <html>
-      <head>
-        <style>
-          body { margin: 0; padding: 0; display: flex; justify-content: center; align-items: center; background-color: #f8fafc; }
-        </style>
-      </head>
-      <body>
-        <script type="text/javascript">
-          atOptions = {
-            'key' : '97fc9278d2d7f7a9983b963c24c16fc8',
-            'format' : 'iframe',
-            'height' : 90,
-            'width' : 728,
-            'params' : {}
-          };
-        </script>
-        <script type="text/javascript" src="https://www.highperformanceformat.com/97fc9278d2d7f7a9983b963c24c16fc8/invoke.js"></script>
-      </body>
-      </html>
-    `;
-
+    // Only execute if the ad hasn't been loaded in this slot yet
     try {
-      doc.open();
-      doc.write(adContent);
-      doc.close();
+      if (adRef.current && window.adsbygoogle) {
+        // Push the ad
+        (window.adsbygoogle = window.adsbygoogle || []).push({});
+      }
     } catch (e) {
-      console.error("Error loading ad script", e);
+      console.error("AdSense Error:", e);
     }
   }, []);
 
   return (
-    <div className="w-full bg-slate-50 border border-slate-100 rounded-lg overflow-hidden flex items-center justify-center min-h-[100px]">
-       {/* 
-         We use an iframe to isolate the ad script. 
-         The width is set to 728px to match the ad config.
-         On mobile, the parent container in App.tsx handles scrolling.
-       */}
-       <iframe 
-         ref={iframeRef} 
-         title="Sponsored Content"
-         width="728" 
-         height="100" 
-         style={{ border: 'none', overflow: 'hidden' }}
-         scrolling="no"
-       />
+    <div className="w-full my-4 flex justify-center items-center bg-gray-50 border border-gray-100 rounded-lg overflow-hidden min-h-[100px] relative">
+      <div className="absolute top-0 right-0 bg-gray-200 text-[9px] px-1 text-gray-500 z-10">Advertisement</div>
+      
+      {/* 
+         GOOGLE ADSENSE UNIT
+         Replace 'data-ad-client' with your Publisher ID (e.g., ca-pub-xxxxxxxxxxx)
+         Replace 'data-ad-slot' with your Ad Unit ID created in AdSense dashboard
+      */}
+      <ins 
+        className="adsbygoogle"
+        style={{ display: 'block', width: '100%', textAlign: 'center' }}
+        data-ad-client="ca-pub-XXXXXXXXXXXXXXXX" 
+        data-ad-slot="1234567890"
+        data-ad-format="auto"
+        data-full-width-responsive="true"
+        ref={adRef}
+      ></ins>
     </div>
   );
 };
