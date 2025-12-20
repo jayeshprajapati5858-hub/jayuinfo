@@ -160,6 +160,13 @@ const WaterSupply: React.FC = () => {
       setComplaints(complaints.filter(c => c.id !== id));
   };
 
+  // Helper to ensure tank level is 0-100
+  const handleTankChange = (val: number) => {
+    if (val < 0) val = 0;
+    if (val > 100) val = 100;
+    setTankLevel(val);
+  }
+
   return (
     <div className="w-full max-w-4xl mx-auto px-4 py-6 animate-fade-in pb-20">
       
@@ -430,7 +437,7 @@ const WaterSupply: React.FC = () => {
                         min="0" 
                         max="100" 
                         value={tankLevel} 
-                        onChange={(e) => setTankLevel(parseInt(e.target.value))}
+                        onChange={(e) => handleTankChange(parseInt(e.target.value))}
                         className="w-full h-2 bg-gray-600 rounded-lg appearance-none cursor-pointer accent-blue-500"
                       />
                       <div className="flex justify-between text-[10px] text-gray-500 mt-1">

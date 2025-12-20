@@ -196,6 +196,16 @@ const BusSchedule: React.FC = () => {
                         onChange={e => setNewTime(e.target.value)}
                         className="p-2 border rounded text-sm"
                       />
+                      <select 
+                        value={newType}
+                        onChange={e => setNewType(e.target.value)}
+                        className="p-2 border rounded text-sm"
+                      >
+                         <option value="Local">Local</option>
+                         <option value="Express">Express</option>
+                         <option value="Gurjarnagari">Gurjarnagari</option>
+                         <option value="Sleeper">Sleeper</option>
+                      </select>
                       <input 
                         type="text" 
                         placeholder="પ્લેટફોર્મ" 
@@ -203,7 +213,7 @@ const BusSchedule: React.FC = () => {
                         onChange={e => setNewPlatform(e.target.value)}
                         className="p-2 border rounded text-sm"
                       />
-                      <button type="submit" className="bg-red-600 text-white font-bold py-2 rounded shadow hover:bg-red-700">
+                      <button type="submit" className="bg-red-600 text-white font-bold py-2 rounded shadow hover:bg-red-700 md:col-span-5">
                           ઉમેરો (+)
                       </button>
                   </form>
