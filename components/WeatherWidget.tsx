@@ -40,8 +40,8 @@ const WeatherWidget: React.FC = () => {
              <span className="font-bold text-lg">12 <span className="text-xs font-normal">km/h</span></span>
            </div>
            <div className="flex flex-col">
-             <span className="text-[10px] uppercase tracking-wider text-blue-100">વરસાદ</span>
-             <span className="font-bold text-lg">0%</span>
+             <span className="text-[10px] uppercase tracking-wider text-blue-100">પીનકોડ</span>
+             <span className="font-bold text-lg">363310</span>
            </div>
         </div>
 
