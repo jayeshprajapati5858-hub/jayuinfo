@@ -1,8 +1,6 @@
-import React, { useState } from 'react';
+import React from 'react';
 
 const SchemeInfo: React.FC = () => {
-  const [activeCategory, setActiveCategory] = useState<'certs' | 'schemes'>('certs');
-
   const certificates = [
     {
       title: "આવકનો દાખલો (Income Certificate)",
