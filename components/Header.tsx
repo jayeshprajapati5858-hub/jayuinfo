@@ -9,11 +9,12 @@ const Header: React.FC<HeaderProps> = ({ totalCount }) => {
   const date = new Date().toLocaleDateString('gu-IN', { day: 'numeric', month: 'short' });
 
   useEffect(() => {
-    // Coordinates for Pincode 363310 (Approx. Bharada/Dhrangadhra region: 22.99°N, 71.46°E)
+    // Coordinates for Pincode 363310 (Bharada Village: ~22.95°N, 71.50°E)
+    // Using Open-Meteo API for live weather
     const fetchWeather = async () => {
       try {
         const response = await fetch(
-          'https://api.open-meteo.com/v1/forecast?latitude=22.99&longitude=71.46&current_weather=true'
+          'https://api.open-meteo.com/v1/forecast?latitude=22.95&longitude=71.50&current_weather=true&timezone=auto'
         );
         const data = await response.json();
         if (data.current_weather) {
@@ -28,6 +29,10 @@ const Header: React.FC<HeaderProps> = ({ totalCount }) => {
     };
 
     fetchWeather();
+
+    // Refresh weather every 5 minutes to keep it "Live"
+    const interval = setInterval(fetchWeather, 300000);
+    return () => clearInterval(interval);
   }, []);
 
   // Helper to map WMO codes to Gujarati description
@@ -65,9 +70,15 @@ const Header: React.FC<HeaderProps> = ({ totalCount }) => {
           </div>
 
           {/* Compact Live Weather Widget */}
-          <div className="bg-emerald-800/60 rounded-lg px-3 py-1.5 border border-emerald-600/50 backdrop-blur-sm flex items-center gap-3 shadow-sm hover:bg-emerald-800/80 transition-colors cursor-pointer" title="આજનું લાઈવ હવામાન">
-             <div className="text-yellow-300 bg-white/5 p-1 rounded-full">
-                {/* Dynamic Icon based on simple logic, default to Sun */}
+          <div className="bg-emerald-800/60 rounded-lg px-3 py-1.5 border border-emerald-600/50 backdrop-blur-sm flex items-center gap-3 shadow-sm hover:bg-emerald-800/80 transition-colors cursor-pointer" title="પીનકોડ: 363310 (Live Weather)">
+             <div className="text-yellow-300 bg-white/5 p-1 rounded-full relative">
+                {/* Status Dot for Live */}
+                <span className="absolute -top-1 -right-1 flex h-2 w-2">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
+                </span>
+                
+                {/* Icon */}
                 {weather && weather.code > 3 ? (
                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.001 4.001 0 003 15z"></path></svg>
                 ) : (
@@ -80,9 +91,12 @@ const Header: React.FC<HeaderProps> = ({ totalCount }) => {
                      {weather ? `${weather.temp}°C` : '--°C'}
                    </span>
                 </div>
-                <p className="text-[10px] text-emerald-100 font-medium whitespace-nowrap">
-                   {date} • {weather ? getWeatherDescription(weather.code) : 'Loading...'}
-                </p>
+                <div className="flex flex-col items-end">
+                  <p className="text-[10px] text-emerald-100 font-medium whitespace-nowrap leading-none mb-0.5">
+                     {weather ? getWeatherDescription(weather.code) : 'Loading...'}
+                  </p>
+                  <p className="text-[9px] text-emerald-200/80 font-mono">363310</p>
+                </div>
              </div>
           </div>
 

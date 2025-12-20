@@ -12,11 +12,11 @@ const WeatherWidget: React.FC = () => {
   const date = new Date().toLocaleDateString('gu-IN', { weekday: 'long', day: 'numeric', month: 'long' });
 
   useEffect(() => {
-    // Fetch detailed live weather for 363310 (22.99, 71.46)
+    // Fetch detailed live weather for 363310 (Bharada: 22.95, 71.50)
     const fetchWeather = async () => {
       try {
         const response = await fetch(
-          'https://api.open-meteo.com/v1/forecast?latitude=22.99&longitude=71.46&current=temperature_2m,relative_humidity_2m,weather_code,wind_speed_10m'
+          'https://api.open-meteo.com/v1/forecast?latitude=22.95&longitude=71.50&current=temperature_2m,relative_humidity_2m,weather_code,wind_speed_10m&timezone=auto'
         );
         const result = await response.json();
         if (result.current) {
@@ -33,6 +33,10 @@ const WeatherWidget: React.FC = () => {
     };
 
     fetchWeather();
+    
+    // Refresh every 5 minutes
+    const interval = setInterval(fetchWeather, 300000);
+    return () => clearInterval(interval);
   }, []);
 
   const getWeatherDescription = (code: number) => {
