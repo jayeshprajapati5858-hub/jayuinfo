@@ -27,7 +27,7 @@ const formatAccountNo = (accNo: string) => {
 
 // WhatsApp Share Handler
 const handleShare = (item: Beneficiary) => {
-  const text = `*કૃષિ સહાય - મંજૂરી સ્ટેટસ*\n\n👤 નામ: ${item.name}\n📄 અરજી: ${item.applicationNo}\n🏡 ગામ: ${item.village}\n\n👉 વધુ માહિતી માટે પોર્ટલ જુઓ.`;
+  const text = `*કૃષિ સહાય - મંજૂરી સ્ટેટસ*\n\n👤 નામ: ${item.name}\n📄 અરજી: ${item.applicationNo}\n🏡 ગામ: ${item.village}\n\n👉 વધુ માહિતી માટે: https://www.jayuinfo.in`;
   const url = `https://wa.me/?text=${encodeURIComponent(text)}`;
   window.open(url, '_blank');
 };

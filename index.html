@@ -17,10 +17,21 @@
     <script>
       window.OneSignalDeferred = window.OneSignalDeferred || [];
       window.OneSignalDeferred.push(async function(OneSignal) {
-        await OneSignal.init({
-          appId: "9be8c63c-d480-4eb7-a3b2-61a6bbf104df",
-          allowLocalhostAsSecureOrigin: true,
-        });
+        // Prevent initialization if not on allowed domains to avoid "Can only be used on..." error
+        const hostname = window.location.hostname;
+        const allowedDomains = ['jayuinfo.in', 'www.jayuinfo.in', 'localhost', '127.0.0.1'];
+        
+        // Allow if exact match or subdomain of jayuinfo.in
+        const isAllowed = allowedDomains.some(d => hostname === d) || hostname.endsWith('.jayuinfo.in');
+
+        if (isAllowed) {
+          await OneSignal.init({
+            appId: "9be8c63c-d480-4eb7-a3b2-61a6bbf104df",
+            allowLocalhostAsSecureOrigin: true,
+          });
+        } else {
+          console.log(`OneSignal init skipped for ${hostname} to prevent configuration errors.`);
+        }
       });
     </script>
     
