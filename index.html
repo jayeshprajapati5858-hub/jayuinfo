@@ -11,18 +11,31 @@
     <meta name="keywords" content="Krushi Sahay, DBT List Gujarat, Bharada Panchayat, Farmers Portal, Market Rates APMC, Water Supply Schedule" />
     <meta name="author" content="Bharada Gram Panchayat" />
     <meta name="robots" content="index, follow" />
+
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://www.jayuinfo.in/" />
+    <meta property="og:title" content="Krushi Sahay DBT Portal | Bharada Gram Panchayat" />
+    <meta property="og:description" content="Check Krushi Sahay DBT Status, Water Supply Updates, and Market Rates for Bharada Gram Panchayat." />
+    <meta property="og:image" content="https://ui-avatars.com/api/?name=Bharada+Panchayat&background=10b981&color=fff" />
+
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary_large_image" />
+    <meta property="twitter:url" content="https://www.jayuinfo.in/" />
+    <meta property="twitter:title" content="Krushi Sahay DBT Portal | Bharada Gram Panchayat" />
+    <meta property="twitter:description" content="Check Krushi Sahay DBT Status, Water Supply Updates, and Market Rates for Bharada Gram Panchayat." />
+    <meta property="twitter:image" content="https://ui-avatars.com/api/?name=Bharada+Panchayat&background=10b981&color=fff" />
     
     <!-- OneSignal SDK -->
     <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
     <script>
       window.OneSignalDeferred = window.OneSignalDeferred || [];
       window.OneSignalDeferred.push(async function(OneSignal) {
-        // Prevent initialization if not on allowed domains to avoid "Can only be used on..." error
         const hostname = window.location.hostname;
         const allowedDomains = ['jayuinfo.in', 'www.jayuinfo.in', 'localhost', '127.0.0.1'];
         
-        // Allow if exact match or subdomain of jayuinfo.in
-        const isAllowed = allowedDomains.some(d => hostname === d) || hostname.endsWith('.jayuinfo.in');
+        // Allow if exact match or subdomain of jayuinfo.in or localhost
+        const isAllowed = allowedDomains.some(d => hostname === d) || hostname.endsWith('.jayuinfo.in') || hostname.startsWith('192.168.');
 
         if (isAllowed) {
           await OneSignal.init({
@@ -30,7 +43,7 @@
             allowLocalhostAsSecureOrigin: true,
           });
         } else {
-          console.log(`OneSignal init skipped for ${hostname} to prevent configuration errors.`);
+          console.log('OneSignal init skipped: Domain not allowed.');
         }
       });
     </script>
