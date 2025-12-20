@@ -28,14 +28,6 @@ const Header: React.FC<HeaderProps> = ({ totalCount }) => {
             </div>
           </div>
 
-          {/* Right Side: Total Beneficiaries Count */}
-          <div className="text-right">
-             <div className="bg-emerald-800/50 rounded-lg px-4 py-2 border border-emerald-600/30 backdrop-blur-sm">
-                <p className="text-emerald-200 text-[10px] font-bold uppercase tracking-wider mb-0.5">કુલ લાભાર્થી</p>
-                <p className="text-white font-bold text-2xl leading-none tracking-tight">{totalCount}</p>
-             </div>
-          </div>
-
         </div>
       </div>
     </header>
