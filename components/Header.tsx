@@ -1,10 +1,6 @@
 import React from 'react';
 
-interface HeaderProps {
-  totalCount: number;
-}
-
-const Header: React.FC<HeaderProps> = ({ totalCount }) => {
+const Header: React.FC = () => {
   return (
     <header className="fixed top-0 left-0 right-0 bg-white/90 backdrop-blur-md border-b border-gray-200 z-50 transition-all duration-300">
       <div className="max-w-2xl mx-auto px-4 py-3 flex justify-between items-center">

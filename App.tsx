@@ -79,7 +79,7 @@ const App: React.FC = () => {
   return (
     <div className="min-h-screen flex flex-col bg-[#F8FAFC] font-sans text-gray-900">
       
-      <Header totalCount={beneficiaryData.length} />
+      <Header />
       
       {/* Top Spacer for Fixed Header */}
       <div className="h-[60px]"></div>
