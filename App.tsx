@@ -40,20 +40,30 @@ const normalizeToSkeleton = (text: string) => {
 };
 
 // --- Scrolling Notice Ticker ---
-const NoticeTicker = () => (
-  <div className="bg-orange-500 overflow-hidden py-2 relative shadow-sm">
-     <div className="absolute left-0 top-0 bottom-0 w-8 bg-gradient-to-r from-orange-500 to-transparent z-10"></div>
-     <div className="absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-orange-500 to-transparent z-10"></div>
-     <div className="whitespace-nowrap animate-marquee flex gap-8">
-        {[1, 2, 3].map(i => (
-           <span key={i} className="text-white text-xs font-bold inline-flex items-center gap-2">
-             <span className="bg-white text-orange-600 text-[10px] px-1.5 rounded">NEW</span>
-             કૃષિ સહાય પેકેજની યાદી જાહેર. ખેડૂતોએ તાત્કાલિક બેંક DBT ચાલુ કરાવવું.
-           </span>
-        ))}
-     </div>
-  </div>
-);
+const NoticeTicker = ({ notices }: { notices: any[] }) => {
+  const defaultNotices = [
+    { title: 'કૃષિ સહાય પેકેજની યાદી જાહેર. ખેડૂતોએ તાત્કાલિક બેંક DBT ચાલુ કરાવવું.' },
+    { title: 'ગ્રામ પંચાયતની વેરા વસૂલાત ઝુંબેશ ચાલુ છે.' }
+  ];
+  
+  const displayData = notices && notices.length > 0 ? notices : defaultNotices;
+
+  return (
+    <div className="bg-orange-500 overflow-hidden py-2 relative shadow-sm">
+       <div className="absolute left-0 top-0 bottom-0 w-8 bg-gradient-to-r from-orange-500 to-transparent z-10"></div>
+       <div className="absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-orange-500 to-transparent z-10"></div>
+       <div className="whitespace-nowrap animate-marquee flex gap-8">
+          {displayData.map((n, i) => (
+             <span key={i} className="text-white text-xs font-bold inline-flex items-center gap-2">
+               <span className="bg-white text-orange-600 text-[10px] px-1.5 rounded">NEW</span>
+               {n.title}
+               {n.contactPerson && <span className="font-normal opacity-90 text-[10px] ml-1">({n.contactPerson})</span>}
+             </span>
+          ))}
+       </div>
+    </div>
+  );
+};
 
 type ServiceType = 'market' | 'water' | 'health' | 'school' | 'notice' | 'schemes' | 'rojgar' | 'bus' | 'business' | 'profile' | 'agri' | 'complaint' | 'student';
 
@@ -62,29 +72,34 @@ const App: React.FC = () => {
   const [currentView, setCurrentView] = useState<'home' | 'search' | 'services' | 'panchayat' | 'more'>('home');
   const [activeService, setActiveService] = useState<ServiceType | null>(null);
 
-  // Notification State
+  // Notification & Ticker State
   const [hasNewNotices, setHasNewNotices] = useState(false);
   const [hasNewJobs, setHasNewJobs] = useState(false);
+  const [tickerNotices, setTickerNotices] = useState<any[]>([]);
 
-  // Check for updates on mount
+  // Check for updates on mount and poll regularly
   useEffect(() => {
     const checkUpdates = () => {
         const oneDayMs = 24 * 60 * 60 * 1000;
         const now = Date.now();
 
-        // Check Notices
+        // Check Notices for Red Dot & Ticker
         const notices = JSON.parse(localStorage.getItem('villageNotices') || '[]');
-        const recentNotice = notices.some((n: any) => (now - (n.timestamp || 0)) < oneDayMs);
-        setHasNewNotices(recentNotice);
+        const activeNotices = notices.filter((n: any) => (now - (n.timestamp || 0)) < oneDayMs);
+        
+        setHasNewNotices(activeNotices.length > 0);
+        setTickerNotices(activeNotices);
 
-        // Check Jobs
+        // Check Jobs for Red Dot
         const jobs = JSON.parse(localStorage.getItem('rojgarListings') || '[]');
         const recentJob = jobs.some((j: any) => (now - (j.timestamp || 0)) < oneDayMs);
         setHasNewJobs(recentJob);
     };
     
     checkUpdates();
-    // Re-check every time view changes (simulating real-time feel)
+    // Poll every 3 seconds to update ticker if a new notice is added
+    const interval = setInterval(checkUpdates, 3000);
+    return () => clearInterval(interval);
   }, [currentView]);
 
   const filteredData = useMemo(() => {
@@ -137,7 +152,7 @@ const App: React.FC = () => {
       {/* Top Spacer for Fixed Header */}
       <div className="h-[60px]"></div>
 
-      <NoticeTicker />
+      <NoticeTicker notices={tickerNotices} />
       
       <main className="flex-grow w-full max-w-2xl mx-auto px-4 py-6 pb-28">
         

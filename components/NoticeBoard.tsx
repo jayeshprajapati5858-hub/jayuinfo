@@ -133,8 +133,8 @@ const NoticeBoard: React.FC = () => {
     setNewMobile('');
 
     const msg = sendNotification 
-        ? "જાહેરાત ઉમેરાઈ ગઈ અને નોટિફિકેશન મોકલી દેવાયું!" 
-        : "જાહેરાત સફળતાપૂર્વક ઉમેરાઈ ગઈ છે.";
+        ? "જાહેરાત પબ્લિશ થઈ ગઈ! (Notification Sent & Live on Home)" 
+        : "જાહેરાત પબ્લિશ થઈ ગઈ! (હવે હોમ સ્ક્રીન પર દેખાશે)";
     alert(msg);
   };
 
@@ -356,7 +356,7 @@ const NoticeBoard: React.FC = () => {
 
                     <div className="pt-2">
                         <button type="submit" className="w-full bg-indigo-600 text-white py-3 rounded-xl font-bold shadow-lg hover:bg-indigo-700 transform active:scale-95 transition-all">
-                            {sendNotification ? 'સબમિટ અને નોટિફાય કરો' : 'સબમિટ કરો'}
+                            {sendNotification ? 'સબમિટ અને નોટિફાય કરો' : 'જાહેરાત પબ્લિશ કરો'}
                         </button>
                     </div>
                 </form>
