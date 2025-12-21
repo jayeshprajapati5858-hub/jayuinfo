@@ -30,7 +30,6 @@ const NewsSection: React.FC = () => {
   const [content, setContent] = useState('');
   const [imageUrl, setImageUrl] = useState('');
 
-  // 1. Initialize DB Table (One-time check)
   const initDb = async () => {
     try {
         const query = `
@@ -51,7 +50,6 @@ const NewsSection: React.FC = () => {
     }
   };
 
-  // 2. Fetch Data Directly from DB
   const fetchNews = async () => {
     setLoading(true);
     try {
@@ -71,7 +69,8 @@ const NewsSection: React.FC = () => {
     fetchNews();
   }, []);
 
-  const handleLogin = () => {
+  const handleLogin = (e: React.FormEvent) => {
+    e.preventDefault();
     if (pin === '1234') {
       setIsAdmin(true);
       setShowLogin(false);
@@ -131,13 +130,38 @@ const NewsSection: React.FC = () => {
 
   return (
     <div className="w-full max-w-7xl mx-auto px-4 mt-6 mb-8 animate-fade-in pb-20">
+      {error && (
+        <div className="bg-red-50 text-red-600 p-4 rounded-xl mb-4 text-center text-sm font-bold">
+          {error}
+        </div>
+      )}
       <div className="flex justify-between items-center mb-6">
          <div className="flex items-center gap-2">
             <span className="h-8 w-1.5 bg-indigo-600 rounded-full"></span>
             <div><h2 className="text-xl font-bold text-gray-800">યોજના અને સમાચાર</h2></div>
          </div>
-         {isAdmin && <button onClick={() => setShowForm(true)} className="bg-indigo-600 text-white px-4 py-2 rounded-lg text-xs font-bold shadow-md">નવો લેખ</button>}
+         <div className="flex gap-2">
+           {!isAdmin ? (
+             <button onClick={() => setShowLogin(true)} className="text-xs text-gray-400">Admin</button>
+           ) : (
+             <button onClick={() => setShowForm(true)} className="bg-indigo-600 text-white px-4 py-2 rounded-lg text-xs font-bold">નવો લેખ</button>
+           )}
+         </div>
       </div>
+      
+      {showLogin && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <form onSubmit={handleLogin} className="bg-white p-6 rounded-2xl w-full max-w-xs text-center">
+             <h3 className="font-bold mb-4">Admin Login</h3>
+             <input type="password" value={pin} onChange={e => setPin(e.target.value)} placeholder="PIN (1234)" className="w-full border p-2 rounded mb-4 text-center" />
+             <div className="flex gap-2">
+               <button type="submit" className="flex-1 bg-indigo-600 text-white py-2 rounded">Login</button>
+               <button type="button" onClick={() => setShowLogin(false)} className="flex-1 bg-gray-100 py-2 rounded">Cancel</button>
+             </div>
+          </form>
+        </div>
+      )}
+
       {loading ? (
         <div className="text-center py-10"><div className="inline-block animate-spin rounded-full h-8 w-8 border-4 border-indigo-500 border-t-transparent"></div></div>
       ) : (

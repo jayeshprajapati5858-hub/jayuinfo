@@ -1,28 +1,7 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo } from 'react';
 import Header from './Header';
 import SearchBar from './SearchBar';
 import { BeneficiaryList } from './BeneficiaryList';
-import PanchayatInfo from './PanchayatInfo';
-import ImportantLinks from './ImportantLinks';
-import WaterSupply from './WaterSupply';
-import EmergencyContacts from './EmergencyContacts';
-import PhotoGallery from './PhotoGallery';
-import MarketRates from './MarketRates';
-import WeatherWidget from './WeatherWidget';
-import HealthCenter from './HealthCenter';
-import SchoolInfo from './SchoolInfo';
-import NoticeBoard from './NoticeBoard';
-import SchemeInfo from './SchemeInfo';
-import RojgarBoard from './RojgarBoard';
-import BusSchedule from './BusSchedule';
-import BusinessDirectory from './BusinessDirectory';
-import VillageProfile from './VillageProfile';
-import AgriRental from './AgriRental';
-import GeneralComplaints from './GeneralComplaints';
-import StudentCorner from './StudentCorner';
-import BloodDonors from './BloodDonors';
-import NewsSection from './NewsSection';
-import { PrivacyPolicy, TermsConditions } from './LegalPages';
 import { beneficiaryData } from '../data/beneficiaries';
 import { Beneficiary } from '../types';
 
@@ -43,17 +22,14 @@ const normalizeToSkeleton = (text: string) => {
   return normalized;
 };
 
-const NoticeTicker = ({ notices }: { notices: any[] }) => {
-  const displayData = notices && notices.length > 0 ? notices : [{ title: 'કૃષિ સહાય પેકેજની યાદી જાહેર.' }];
+const NoticeTicker = () => {
   return (
     <div className="bg-orange-600 overflow-hidden py-2 relative">
        <div className="whitespace-nowrap animate-marquee flex gap-12">
-          {displayData.map((n, i) => (
-             <span key={i} className="text-white text-sm font-bold inline-flex items-center gap-2">
-               <span className="bg-red-500 text-white text-[10px] px-2 py-0.5 rounded">LIVE</span>
-               {n.title}
-             </span>
-          ))}
+          <span className="text-white text-sm font-bold inline-flex items-center gap-2">
+            <span className="bg-red-500 text-white text-[10px] px-2 py-0.5 rounded">LIVE</span>
+            કૃષિ સહાય પેકેજની યાદી જાહેર.
+          </span>
        </div>
     </div>
   );
@@ -61,8 +37,6 @@ const NoticeTicker = ({ notices }: { notices: any[] }) => {
 
 const App: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
-  const [currentView, setCurrentView] = useState<any>('home');
-  const [activeService, setActiveService] = useState<any>(null);
 
   const filteredData = useMemo(() => {
     if (!searchQuery.trim()) return beneficiaryData;
@@ -81,10 +55,11 @@ const App: React.FC = () => {
     <div className="min-h-screen bg-[#F8FAFC]">
       <Header />
       <div className="h-[60px]"></div>
-      <NoticeTicker notices={[]} />
+      <NoticeTicker />
       <main className="max-w-2xl mx-auto px-4 py-6">
-        {currentView === 'home' && <h2 className="font-bold">Home Page</h2>}
-        {currentView === 'search' && <SearchBar value={searchQuery} onChange={setSearchQuery} />}
+        <div className="mb-4">
+          <SearchBar value={searchQuery} onChange={setSearchQuery} />
+        </div>
         <BeneficiaryList data={filteredData} />
       </main>
     </div>
