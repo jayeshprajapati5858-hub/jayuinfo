@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { pool } from '../utils/db';
 
@@ -13,7 +14,6 @@ interface Article {
 const NewsSection: React.FC = () => {
   const [newsList, setNewsList] = useState<Article[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
   const [selectedId, setSelectedId] = useState<number | null>(null);
 
   const [isAdmin, setIsAdmin] = useState(false);
@@ -39,7 +39,7 @@ const NewsSection: React.FC = () => {
               created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             );
         `);
-    } catch (e) { console.error(e); }
+    } catch (e) { console.error("Database Init Error:", e); }
   };
 
   const fetchNews = async () => {
@@ -49,7 +49,7 @@ const NewsSection: React.FC = () => {
         const result = await pool.query('SELECT * FROM news ORDER BY id DESC');
         setNewsList(result.rows);
     } catch (err) {
-        setError("ડેટાબેઝ એરર!");
+        console.error("Fetch News Error:", err);
     } finally { setLoading(false); }
   };
 
@@ -68,7 +68,7 @@ const NewsSection: React.FC = () => {
             setNewsList(newsList.filter(a => a.id !== id));
             alert('સમાચાર ડિલીટ થઈ ગયા.');
         } catch (e) {
-            console.error(e);
+            console.error("Delete Error:", e);
             alert('ડિલીટ કરવામાં નિષ્ફળતા.');
         }
     }
@@ -83,7 +83,10 @@ const NewsSection: React.FC = () => {
         setNewsList([res.rows[0], ...newsList]);
         setShowForm(false); resetForm();
         alert('સમાચાર સફળતાપૂર્વક પબ્લિશ થયા!');
-    } catch (e) { alert('સેવ કરવામાં ભૂલ પડી!'); }
+    } catch (e) { 
+        console.error("Insert Error:", e);
+        alert('સેવ કરવામાં ભૂલ પડી!'); 
+    }
   };
 
   const resetForm = () => { setTitle(''); setSummary(''); setContent(''); };
@@ -100,7 +103,8 @@ const NewsSection: React.FC = () => {
       </div>
 
       <div className="space-y-6">
-        {loading ? <div className="text-center py-20 animate-pulse">લોડ થઈ રહ્યું છે...</div> : 
+        {loading ? <div className="text-center py-20 animate-pulse text-gray-400">લોડ થઈ રહ્યું છે...</div> : 
+        newsList.length === 0 ? <div className="text-center py-20 text-gray-400">કોઈ સમાચાર ઉપલબ્ધ નથી.</div> :
         newsList.map((article) => (
           <div key={article.id} className="bg-white rounded-[1.5rem] shadow-sm border border-gray-100 overflow-hidden hover:shadow-md transition-all duration-300 relative p-6">
              {isAdmin && <button onClick={() => handleDelete(article.id)} className="absolute top-4 right-4 z-20 bg-red-50 text-red-500 p-2 rounded-full hover:bg-red-100 transition-colors">✕</button>}
@@ -108,6 +112,7 @@ const NewsSection: React.FC = () => {
                 <span className="bg-indigo-50 text-indigo-600 text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-wider">{article.category}</span>
                 <span className="text-[10px] text-gray-400 font-medium">{article.date}</span>
              </div>
+             {/* Fix: Pass article.id directly to toggleArticle instead of a function */}
              <h3 className="text-xl font-bold text-gray-900 leading-tight mb-2 cursor-pointer hover:text-indigo-600 transition-colors" onClick={() => toggleArticle(article.id)}>{article.title}</h3>
              <p className="text-sm text-gray-500 line-clamp-2 leading-relaxed">{article.summary}</p>
              {selectedId === article.id && (
