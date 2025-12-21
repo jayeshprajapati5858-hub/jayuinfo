@@ -59,7 +59,7 @@ const NewsSection: React.FC = () => {
         setError('');
     } catch (err: any) {
         console.error("Database Fetch Error:", err);
-        setError("ડેટાબેઝ સાથે કનેક્શન મળતું નથી. (Check Internet)");
+        setError("ડેટાબેઝ સાથે કનેક્શન મળતું નથી.");
     } finally {
         setLoading(false);
     }
@@ -80,6 +80,21 @@ const NewsSection: React.FC = () => {
     }
   };
 
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 2 * 1024 * 1024) {
+        alert("ફાઈલ સાઈઝ ૨ MB થી ઓછી હોવી જોઈએ.");
+        return;
+      }
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setImageUrl(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
   const handleDelete = async (id: number) => {
     if(window.confirm('આ સમાચાર કાયમ માટે ડિલીટ કરવા છે?')) {
         try {
@@ -95,7 +110,7 @@ const NewsSection: React.FC = () => {
 
   const handleAddNews = async (e: React.FormEvent) => {
     e.preventDefault();
-    const finalImage = imageUrl.trim() || `https://ui-avatars.com/api/?name=${encodeURIComponent(category)}&background=random&color=fff&size=128`;
+    const finalImage = imageUrl.trim() || `https://ui-avatars.com/api/?name=${encodeURIComponent(category)}&background=indigo&color=fff&size=128`;
     const dateStr = new Date().toLocaleDateString('gu-IN', { day: 'numeric', month: 'long', year: 'numeric' });
     try {
         const query = `
@@ -144,7 +159,7 @@ const NewsSection: React.FC = () => {
            {!isAdmin ? (
              <button onClick={() => setShowLogin(true)} className="text-xs text-gray-400">Admin</button>
            ) : (
-             <button onClick={() => setShowForm(true)} className="bg-indigo-600 text-white px-4 py-2 rounded-lg text-xs font-bold">નવો લેખ</button>
+             <button onClick={() => setShowForm(true)} className="bg-indigo-600 text-white px-4 py-2 rounded-lg text-xs font-bold shadow-md">નવો લેખ</button>
            )}
          </div>
       </div>
@@ -168,30 +183,66 @@ const NewsSection: React.FC = () => {
         <div className="grid gap-6 mt-6">
             {newsList.map((article) => (
                 <div key={article.id} className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden relative">
-                {isAdmin && <button onClick={() => handleDelete(article.id)} className="absolute top-2 right-2 z-10 bg-red-100 text-red-600 p-2 rounded-full">✕</button>}
+                {isAdmin && <button onClick={() => handleDelete(article.id)} className="absolute top-2 right-2 z-20 bg-red-100 text-red-600 p-2 rounded-full shadow-sm hover:bg-red-200">✕</button>}
                 <div className="flex flex-col sm:flex-row">
-                    <div className="sm:w-32 h-32 bg-gray-100 flex-shrink-0"><img src={article.image} className="w-full h-full object-cover" alt="" /></div>
-                    <div className="p-5 flex-1">
-                        <h3 className="text-lg font-bold text-gray-900 leading-snug cursor-pointer" onClick={() => toggleArticle(article.id)}>{article.title}</h3>
-                        <p className="text-xs text-gray-400 mb-3">{article.date}</p>
-                        <p className="text-sm text-gray-600 mb-4">{article.summary}</p>
-                        {selectedId === article.id && <div className="mt-4 pt-4 border-t border-gray-100"><p className="text-sm text-gray-800 whitespace-pre-line">{article.content}</p></div>}
-                        <button onClick={() => toggleArticle(article.id)} className="text-indigo-600 text-xs font-bold uppercase">{selectedId === article.id ? 'ઓછું વાંચો' : 'વધુ વાંચો'}</button>
+                    <div className="sm:w-48 h-48 bg-gray-100 flex-shrink-0 overflow-hidden">
+                        <img src={article.image} className="w-full h-full object-cover transition-transform hover:scale-105" alt={article.title} />
+                    </div>
+                    <div className="p-5 flex-1 flex flex-col justify-between">
+                        <div>
+                            <div className="flex justify-between items-start mb-2">
+                                <span className="text-[10px] font-bold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-full uppercase tracking-wider">{article.category}</span>
+                                <p className="text-[10px] text-gray-400 font-medium">{article.date}</p>
+                            </div>
+                            <h3 className="text-lg font-bold text-gray-900 leading-snug cursor-pointer hover:text-indigo-600" onClick={() => toggleArticle(article.id)}>{article.title}</h3>
+                            <p className="text-sm text-gray-600 mt-2 line-clamp-2">{article.summary}</p>
+                            {selectedId === article.id && <div className="mt-4 pt-4 border-t border-gray-100 animate-fade-in"><p className="text-sm text-gray-800 whitespace-pre-line leading-relaxed">{article.content}</p></div>}
+                        </div>
+                        <button onClick={() => toggleArticle(article.id)} className="mt-4 text-indigo-600 text-xs font-bold uppercase tracking-wider flex items-center gap-1 group">
+                            {selectedId === article.id ? 'ઓછું વાંચો' : 'વધુ વાંચો'}
+                            <span className="group-hover:translate-x-1 transition-transform">→</span>
+                        </button>
                     </div>
                 </div>
                 </div>
             ))}
         </div>
       )}
+
       {showForm && (
-        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
-            <div className="bg-white rounded-2xl w-full max-w-lg p-6">
+        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm overflow-y-auto">
+            <div className="bg-white rounded-2xl w-full max-w-lg p-6 my-auto shadow-2xl">
+                <div className="flex justify-between items-center mb-4">
+                    <h3 className="text-lg font-bold">નવા સમાચાર ઉમેરો</h3>
+                    <button onClick={() => setShowForm(false)} className="text-gray-400 hover:text-gray-600">✕</button>
+                </div>
                 <form onSubmit={handleAddNews} className="space-y-4">
-                    <input type="text" required value={title} onChange={e => setTitle(e.target.value)} placeholder="Title" className="w-full p-2 border rounded" />
-                    <textarea required value={summary} onChange={e => setSummary(e.target.value)} placeholder="Summary" className="w-full p-2 border rounded" />
-                    <textarea required value={content} onChange={e => setContent(e.target.value)} placeholder="Content" className="w-full p-2 border rounded" rows={5} />
-                    <button type="submit" className="w-full bg-indigo-600 text-white py-2 rounded font-bold">પબ્લિશ</button>
-                    <button type="button" onClick={() => setShowForm(false)} className="w-full text-xs text-gray-500">Cancel</button>
+                    <div className="flex gap-4 items-start">
+                        <div className="flex-1 space-y-4">
+                            <input type="text" required value={title} onChange={e => setTitle(e.target.value)} placeholder="શીર્ષક (Title)" className="w-full p-2.5 border rounded-xl bg-gray-50 focus:ring-2 focus:ring-indigo-100" />
+                            <select value={category} onChange={e => setCategory(e.target.value)} className="w-full p-2.5 border rounded-xl bg-gray-50">
+                                <option value="યોજના">સરકારી યોજના</option>
+                                <option value="ખેતી">ખેતી સમાચાર</option>
+                                <option value="પંચાયત">પંચાયત અપડેટ</option>
+                                <option value="અન્ય">અન્ય સમાચાર</option>
+                            </select>
+                        </div>
+                        <div className="w-24 h-24 bg-gray-50 border-2 border-dashed rounded-xl flex items-center justify-center relative overflow-hidden group">
+                           {imageUrl ? (
+                               <img src={imageUrl} className="w-full h-full object-cover" alt="Preview" />
+                           ) : (
+                               <span className="text-[10px] text-gray-400 text-center px-1">ફોટો પસંદ કરો</span>
+                           )}
+                           <input type="file" accept="image/*" onChange={handleFileChange} className="absolute inset-0 opacity-0 cursor-pointer" />
+                        </div>
+                    </div>
+                    <textarea required value={summary} onChange={e => setSummary(e.target.value)} placeholder="ટૂંકી વિગત (Summary)" className="w-full p-2.5 border rounded-xl bg-gray-50" rows={2} />
+                    <textarea required value={content} onChange={e => setContent(e.target.value)} placeholder="વિગતવાર સમાચાર (Content)" className="w-full p-2.5 border rounded-xl bg-gray-50" rows={5} />
+                    
+                    <div className="flex gap-3 pt-2">
+                        <button type="submit" className="flex-1 bg-indigo-600 text-white py-3 rounded-xl font-bold shadow-lg hover:bg-indigo-700 transition-all">પબ્લિશ કરો</button>
+                        <button type="button" onClick={() => setShowForm(false)} className="flex-1 bg-gray-100 text-gray-600 py-3 rounded-xl font-bold">કેન્સલ</button>
+                    </div>
                 </form>
             </div>
         </div>
