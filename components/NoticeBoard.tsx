@@ -1,9 +1,5 @@
 import React, { useState, useEffect } from 'react';
-// @ts-ignore
-import { Pool } from '@neondatabase/serverless';
-
-const connectionString = 'postgresql://neondb_owner:npg_LZ5H2AChwUGB@ep-sparkling-block-a4stnq97-pooler.us-east-1.aws.neon.tech/neondb?sslmode=require';
-const pool = new Pool({ connectionString });
+import { pool } from '../utils/db';
 
 interface Notice {
   id: number;
@@ -65,15 +61,18 @@ const NoticeBoard: React.FC = () => {
         setShowForm(false);
         setNewTitle(''); setNewDesc(''); setNewContact(''); setNewMobile('');
         alert('જાહેરાત લાઈવ થઈ ગઈ!');
-    } catch (e) {
+    } catch (err) {
+        console.error(err);
         alert('Error saving notice');
     }
   };
 
   const handleDelete = async (id: number) => {
       if(confirm('Delete this notice?')) {
-          await pool.query('DELETE FROM notices WHERE id = $1', [id]);
-          setNotices(notices.filter(n => n.id !== id));
+          try {
+            await pool.query('DELETE FROM notices WHERE id = $1', [id]);
+            setNotices(notices.filter(n => n.id !== id));
+          } catch(e) { console.error(e); }
       }
   };
 

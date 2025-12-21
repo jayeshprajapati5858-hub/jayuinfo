@@ -1,9 +1,5 @@
 import React, { useState, useEffect } from 'react';
-// @ts-ignore
-import { Pool } from '@neondatabase/serverless';
-
-const connectionString = 'postgresql://neondb_owner:npg_LZ5H2AChwUGB@ep-sparkling-block-a4stnq97-pooler.us-east-1.aws.neon.tech/neondb?sslmode=require';
-const pool = new Pool({ connectionString });
+import { pool } from '../utils/db';
 
 interface JobListing {
   id: number;
