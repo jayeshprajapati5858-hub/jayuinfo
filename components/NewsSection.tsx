@@ -11,30 +11,10 @@ interface Article {
   category: string;
 }
 
-// Initial Sample Data to show if list is empty
-const SAMPLE_DATA: Article[] = [
-  {
-    id: 1,
-    title: "પ્રધાનમંત્રી કિસાન સન્માન નિધિ યોજના અપડેટ",
-    category: "ખેતીવાડી",
-    summary: "પી.એમ. કિસાન યોજનાનો 17મો હપ્તો ટૂંક સમયમાં જમા થશે.",
-    content: "ખેડૂત મિત્રો, પ્રધાનમંત્રી કિસાન સન્માન નિધિ યોજના હેઠળ 17મો હપ્તો ટૂંક સમયમાં જાહેર કરવામાં આવશે. જે ખેડૂતોનું eKYC બાકી હોય તેમણે તાત્કાલિક કરાવી લેવું. આધાર કાર્ડ સાથે બેંક એકાઉન્ટ લિંક હોવું ફરજિયાત છે.",
-    image: "https://ui-avatars.com/api/?name=PM+Kisan&background=16a34a&color=fff&size=128",
-    date: new Date().toLocaleDateString('gu-IN', { day: 'numeric', month: 'long', year: 'numeric' })
-  }
-];
-
 const NewsSection: React.FC = () => {
-  // State for Articles - Initialize from LocalStorage directly
-  const [newsList, setNewsList] = useState<Article[]>(() => {
-    try {
-      const saved = localStorage.getItem('local_news_data');
-      return saved ? JSON.parse(saved) : SAMPLE_DATA;
-    } catch (e) {
-      return SAMPLE_DATA;
-    }
-  });
-  
+  const [newsList, setNewsList] = useState<Article[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
   const [selectedId, setSelectedId] = useState<number | null>(null);
 
   // Admin State
@@ -50,10 +30,28 @@ const NewsSection: React.FC = () => {
   const [content, setContent] = useState('');
   const [imageUrl, setImageUrl] = useState('');
 
-  // Save to LocalStorage whenever list changes
+  // Fetch Data from Real Database
+  const fetchNews = async () => {
+    setLoading(true);
+    try {
+        const response = await fetch('/api/news');
+        if (!response.ok) {
+            throw new Error(`Server Error: ${response.status}`);
+        }
+        const data = await response.json();
+        setNewsList(data);
+        setError('');
+    } catch (err) {
+        console.error("Database Fetch Error:", err);
+        setError("ડેટાબેઝ સાથે કનેક્શન મળતું નથી. (Backend Offline)");
+    } finally {
+        setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    localStorage.setItem('local_news_data', JSON.stringify(newsList));
-  }, [newsList]);
+    fetchNews();
+  }, []);
 
   const handleLogin = () => {
     if (pin === '1234') {
@@ -65,22 +63,29 @@ const NewsSection: React.FC = () => {
     }
   };
 
-  const handleDelete = (id: number) => {
-    if(window.confirm('આ સમાચાર ડિલીટ કરવા છે?')) {
-        const updatedList = newsList.filter(a => a.id !== id);
-        setNewsList(updatedList);
+  const handleDelete = async (id: number) => {
+    if(window.confirm('આ સમાચાર કાયમ માટે ડિલીટ કરવા છે?')) {
+        try {
+            const response = await fetch(`/api/news/${id}`, { method: 'DELETE' });
+            if (response.ok) {
+                setNewsList(newsList.filter(a => a.id !== id));
+                alert('સમાચાર ડિલીટ થઈ ગયા.');
+            } else {
+                alert('ડિલીટ કરવામાં નિષ્ફળતા.');
+            }
+        } catch (e) {
+            alert('સર્વર એરર.');
+        }
     }
   };
 
-  const handleAddNews = (e: React.FormEvent) => {
+  const handleAddNews = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Default image generator if empty
     const finalImage = imageUrl.trim() || `https://ui-avatars.com/api/?name=${encodeURIComponent(category)}&background=random&color=fff&size=128`;
     const dateStr = new Date().toLocaleDateString('gu-IN', { day: 'numeric', month: 'long', year: 'numeric' });
 
-    const newArticle: Article = {
-        id: Date.now(), // Generate ID using timestamp
+    const newArticle = {
         title,
         category,
         summary,
@@ -89,14 +94,27 @@ const NewsSection: React.FC = () => {
         date: dateStr
     };
 
-    // Update State (LocalStorage will update via useEffect)
-    setNewsList([newArticle, ...newsList]);
-    
-    // Close & Reset
-    setShowForm(false);
-    resetForm();
-    
-    alert('સમાચાર પબ્લિશ થઈ ગયા છે! (Saved Locally)');
+    try {
+        const response = await fetch('/api/news', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(newArticle)
+        });
+
+        if (response.ok) {
+            const savedArticle = await response.json();
+            // Add new article to top of list
+            setNewsList([savedArticle, ...newsList]);
+            setShowForm(false);
+            resetForm();
+            alert('સમાચાર સફળતાપૂર્વક પબ્લિશ થયા! હવે બધા યુઝર્સ જોઈ શકશે.');
+        } else {
+            alert('સર્વર એરર: ડેટા સેવ થયો નથી.');
+        }
+    } catch (e) {
+        console.error(e);
+        alert('કનેક્શન એરર. કૃપા કરીને ઇન્ટરનેટ અથવા સર્વર ચેક કરો.');
+    }
   };
 
   const resetForm = () => {
@@ -108,11 +126,7 @@ const NewsSection: React.FC = () => {
   };
 
   const toggleArticle = (id: number) => {
-    if (selectedId === id) {
-      setSelectedId(null);
-    } else {
-      setSelectedId(id);
-    }
+    setSelectedId(selectedId === id ? null : id);
   };
 
   return (
@@ -139,12 +153,31 @@ const NewsSection: React.FC = () => {
          )}
       </div>
 
+      {/* Connection Error Banner */}
+      {error && (
+        <div className="bg-red-50 border-l-4 border-red-500 p-4 mb-6 rounded-r-lg">
+           <div className="flex items-center">
+              <svg className="w-6 h-6 text-red-500 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <p className="text-sm text-red-700 font-bold">{error}</p>
+           </div>
+           <p className="text-xs text-red-500 mt-1 ml-9">ખાતરી કરો કે બેકએન્ડ સર્વર ચાલુ છે.</p>
+        </div>
+      )}
+
       {/* Ad Slot */}
       <AdSenseSlot slotId="NEWS_HEADER_AD_SLOT" />
 
       {/* Articles List */}
-      <div className="grid gap-6 mt-6">
-            {newsList.length === 0 && (
+      {loading ? (
+        <div className="text-center py-10">
+            <div className="inline-block animate-spin rounded-full h-8 w-8 border-4 border-indigo-500 border-t-transparent"></div>
+            <p className="text-gray-500 text-sm mt-2">માહિતી લોડ થઈ રહી છે...</p>
+        </div>
+      ) : (
+        <div className="grid gap-6 mt-6">
+            {newsList.length === 0 && !error && (
                 <div className="text-center py-8 bg-gray-50 rounded-xl border border-dashed border-gray-300">
                     <p className="text-gray-400">હાલમાં કોઈ સમાચાર નથી.</p>
                 </div>
@@ -158,6 +191,7 @@ const NewsSection: React.FC = () => {
                     <button 
                         onClick={() => handleDelete(article.id)}
                         className="absolute top-2 right-2 z-10 bg-red-100 text-red-600 p-2 rounded-full hover:bg-red-200"
+                        title="Delete Article"
                     >
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
                     </button>
@@ -186,7 +220,7 @@ const NewsSection: React.FC = () => {
                             {article.date}
                         </p>
 
-                        {/* Summary (Always Visible) */}
+                        {/* Summary */}
                         <p className="text-sm text-gray-600 leading-relaxed mb-4">
                             {article.summary}
                         </p>
@@ -215,7 +249,8 @@ const NewsSection: React.FC = () => {
                 {index === 1 && <AdSenseSlot slotId="IN_FEED_AD_SLOT" />}
             </React.Fragment>
             ))}
-      </div>
+        </div>
+      )}
 
       {/* Admin Panel Toggle */}
       <div className="mt-8 pt-4 border-t border-gray-200 text-center">
@@ -307,19 +342,12 @@ const NewsSection: React.FC = () => {
                     </div>
 
                     <button type="submit" className="w-full bg-indigo-600 text-white py-3 rounded-xl font-bold shadow-lg hover:bg-indigo-700">
-                        પબ્લિશ કરો (Save Locally)
+                        પબ્લિશ કરો (Save to Global DB)
                     </button>
                 </form>
             </div>
         </div>
       )}
-
-      <div className="mt-8 text-center bg-gray-50 p-4 rounded-xl border border-gray-200">
-         <p className="text-xs text-gray-500">
-            ડિસ્ક્લેમર: અહીં આપેલી માહિતી સમાચાર સ્ત્રોતો અને સરકારી પ્રેસ રિલીઝ પર આધારિત છે. સત્તાવાર માહિતી માટે જે-તે વિભાગની વેબસાઈટની મુલાકાત લેવી.
-         </p>
-      </div>
-
     </div>
   );
 };

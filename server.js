@@ -4,7 +4,7 @@ import cors from 'cors';
 
 const { Pool } = pkg;
 const app = express();
-const port = 3000;
+const port = process.env.PORT || 3000;
 
 // Middleware
 app.use(cors());
@@ -20,7 +20,7 @@ const pool = new Pool({
   }
 });
 
-// Initialize DB Table Automatically
+// Initialize DB Table Automatically on Startup
 const initDb = async () => {
   const createTableQuery = `
     CREATE TABLE IF NOT EXISTS news (
@@ -47,9 +47,9 @@ const initDb = async () => {
 // Run Init
 initDb();
 
-// Root route to verify server is running
+// Root route
 app.get('/', (req, res) => {
-  res.send('Backend Server is Running!');
+  res.send('Backend API is Running. Access /api/news for data.');
 });
 
 // GET: Fetch all news
@@ -67,8 +67,6 @@ app.get('/api/news', async (req, res) => {
 app.post('/api/news', async (req, res) => {
   const { title, category, summary, content, image, date } = req.body;
   
-  console.log("Received News Item:", title);
-
   try {
     const query = `
       INSERT INTO news (title, category, summary, content, image, date)
@@ -98,7 +96,6 @@ app.delete('/api/news/:id', async (req, res) => {
   }
 });
 
-app.listen(port, '0.0.0.0', () => {
-  console.log(`🚀 Server running at http://127.0.0.1:${port}`);
-  console.log(`👉 API Endpoint: http://127.0.0.1:${port}/api/news`);
+app.listen(port, () => {
+  console.log(`🚀 Server running on port ${port}`);
 });
