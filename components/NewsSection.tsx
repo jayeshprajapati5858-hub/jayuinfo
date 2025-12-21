@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import AdSenseSlot from './AdSenseSlot';
+// @ts-ignore
+import { Pool } from '@neondatabase/serverless';
 
 interface Article {
   id: number;
@@ -10,6 +12,16 @@ interface Article {
   image: string;
   category: string;
 }
+
+// ------------------------------------------------------------------
+// DIRECT DATABASE CONFIGURATION (Client-Side)
+// ------------------------------------------------------------------
+const connectionString = 'postgresql://neondb_owner:npg_LZ5H2AChwUGB@ep-sparkling-block-a4stnq97-pooler.us-east-1.aws.neon.tech/neondb?sslmode=require';
+
+const pool = new Pool({
+  connectionString
+});
+// ------------------------------------------------------------------
 
 const NewsSection: React.FC = () => {
   const [newsList, setNewsList] = useState<Article[]>([]);
@@ -30,20 +42,40 @@ const NewsSection: React.FC = () => {
   const [content, setContent] = useState('');
   const [imageUrl, setImageUrl] = useState('');
 
-  // Fetch Data from Real Database
+  // 1. Initialize DB Table (One-time check)
+  const initDb = async () => {
+    try {
+        const query = `
+            CREATE TABLE IF NOT EXISTS news (
+              id SERIAL PRIMARY KEY,
+              title TEXT NOT NULL,
+              category TEXT NOT NULL,
+              summary TEXT NOT NULL,
+              content TEXT NOT NULL,
+              image TEXT,
+              date TEXT NOT NULL,
+              created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            );
+        `;
+        await pool.query(query);
+    } catch (e) {
+        console.error("DB Init Error", e);
+    }
+  };
+
+  // 2. Fetch Data Directly from DB
   const fetchNews = async () => {
     setLoading(true);
     try {
-        const response = await fetch('/api/news');
-        if (!response.ok) {
-            throw new Error(`Server Error: ${response.status}`);
-        }
-        const data = await response.json();
-        setNewsList(data);
+        // Ensure table exists first
+        await initDb();
+
+        const result = await pool.query('SELECT * FROM news ORDER BY id DESC');
+        setNewsList(result.rows);
         setError('');
-    } catch (err) {
+    } catch (err: any) {
         console.error("Database Fetch Error:", err);
-        setError("ડેટાબેઝ સાથે કનેક્શન મળતું નથી. (Backend Offline)");
+        setError("ડેટાબેઝ સાથે કનેક્શન મળતું નથી. (Check Internet)");
     } finally {
         setLoading(false);
     }
@@ -66,15 +98,12 @@ const NewsSection: React.FC = () => {
   const handleDelete = async (id: number) => {
     if(window.confirm('આ સમાચાર કાયમ માટે ડિલીટ કરવા છે?')) {
         try {
-            const response = await fetch(`/api/news/${id}`, { method: 'DELETE' });
-            if (response.ok) {
-                setNewsList(newsList.filter(a => a.id !== id));
-                alert('સમાચાર ડિલીટ થઈ ગયા.');
-            } else {
-                alert('ડિલીટ કરવામાં નિષ્ફળતા.');
-            }
+            await pool.query('DELETE FROM news WHERE id = $1', [id]);
+            setNewsList(newsList.filter(a => a.id !== id));
+            alert('સમાચાર ડિલીટ થઈ ગયા.');
         } catch (e) {
-            alert('સર્વર એરર.');
+            console.error(e);
+            alert('ડિલીટ કરવામાં નિષ્ફળતા.');
         }
     }
   };
@@ -85,35 +114,25 @@ const NewsSection: React.FC = () => {
     const finalImage = imageUrl.trim() || `https://ui-avatars.com/api/?name=${encodeURIComponent(category)}&background=random&color=fff&size=128`;
     const dateStr = new Date().toLocaleDateString('gu-IN', { day: 'numeric', month: 'long', year: 'numeric' });
 
-    const newArticle = {
-        title,
-        category,
-        summary,
-        content,
-        image: finalImage,
-        date: dateStr
-    };
-
     try {
-        const response = await fetch('/api/news', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(newArticle)
-        });
+        const query = `
+          INSERT INTO news (title, category, summary, content, image, date)
+          VALUES ($1, $2, $3, $4, $5, $6)
+          RETURNING *
+        `;
+        const values = [title, category, summary, content, finalImage, dateStr];
+        
+        const result = await pool.query(query, values);
+        const savedArticle = result.rows[0];
 
-        if (response.ok) {
-            const savedArticle = await response.json();
-            // Add new article to top of list
-            setNewsList([savedArticle, ...newsList]);
-            setShowForm(false);
-            resetForm();
-            alert('સમાચાર સફળતાપૂર્વક પબ્લિશ થયા! હવે બધા યુઝર્સ જોઈ શકશે.');
-        } else {
-            alert('સર્વર એરર: ડેટા સેવ થયો નથી.');
-        }
+        // Update UI immediately
+        setNewsList([savedArticle, ...newsList]);
+        setShowForm(false);
+        resetForm();
+        alert('સમાચાર સફળતાપૂર્વક પબ્લિશ થયા! (Saved to Global DB)');
     } catch (e) {
         console.error(e);
-        alert('કનેક્શન એરર. કૃપા કરીને ઇન્ટરનેટ અથવા સર્વર ચેક કરો.');
+        alert('સર્વર એરર: ડેટા સેવ થયો નથી.');
     }
   };
 
@@ -162,7 +181,7 @@ const NewsSection: React.FC = () => {
               </svg>
               <p className="text-sm text-red-700 font-bold">{error}</p>
            </div>
-           <p className="text-xs text-red-500 mt-1 ml-9">ખાતરી કરો કે બેકએન્ડ સર્વર ચાલુ છે.</p>
+           <p className="text-xs text-red-500 mt-1 ml-9">ઈન્ટરનેટ કનેક્શન ચેક કરો.</p>
         </div>
       )}
 
@@ -173,7 +192,7 @@ const NewsSection: React.FC = () => {
       {loading ? (
         <div className="text-center py-10">
             <div className="inline-block animate-spin rounded-full h-8 w-8 border-4 border-indigo-500 border-t-transparent"></div>
-            <p className="text-gray-500 text-sm mt-2">માહિતી લોડ થઈ રહી છે...</p>
+            <p className="text-gray-500 text-sm mt-2">ડેટાબેઝમાંથી માહિતી લોડ થઈ રહી છે...</p>
         </div>
       ) : (
         <div className="grid gap-6 mt-6">
