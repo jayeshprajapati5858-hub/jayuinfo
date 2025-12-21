@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import AdSenseSlot from './AdSenseSlot';
 import { pool } from '../utils/db';
 
 interface Article {
@@ -174,9 +173,6 @@ const NewsSection: React.FC = () => {
         </div>
       )}
 
-      {/* Ad Slot */}
-      <AdSenseSlot slotId="NEWS_HEADER_AD_SLOT" />
-
       {/* Articles List */}
       {loading ? (
         <div className="text-center py-10">
@@ -252,9 +248,6 @@ const NewsSection: React.FC = () => {
                     </div>
                 </div>
                 </div>
-                
-                {/* Insert Ad after the 2nd article */}
-                {index === 1 && <AdSenseSlot slotId="IN_FEED_AD_SLOT" />}
             </React.Fragment>
             ))}
         </div>

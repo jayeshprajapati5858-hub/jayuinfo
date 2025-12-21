@@ -11,24 +11,13 @@ export const PrivacyPolicy: React.FC = () => {
         <h3 className="font-bold text-lg mt-4 text-gray-900">1. માહિતીનો સંગ્રહ (Information Collection)</h3>
         <p>અમે વપરાશકર્તાઓ પાસેથી વ્યક્તિગત ઓળખ માહિતી (જેમ કે નામ, ફોન નંબર) ત્યારે જ એકત્રિત કરીએ છીએ જ્યારે તેઓ સ્વૈચ્છિક રીતે અમને તે આપે છે (જેમ કે ફરિયાદ ફોર્મ, રોજગાર જાહેરાત, અથવા બિઝનેસ ડિરેક્ટરીમાં).</p>
 
-        <h3 className="font-bold text-lg mt-4 text-gray-900">2. કુકીઝ અને થર્ડ-પાર્ટી જાહેરાતો (Cookies & Third-Party Ads)</h3>
-        <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
-            <p className="mb-2"><strong>Google AdSense & DoubleClick Cookie:</strong></p>
-            <ul className="list-disc pl-5 space-y-1">
-                <li>Google, તૃતીય-પક્ષ વિક્રેતા તરીકે, અમારી સાઇટ પર જાહેરાતો આપવા માટે કુકીઝ (Cookies) નો ઉપયોગ કરે છે.</li>
-                <li>Google ની DART કૂકીનો ઉપયોગ તેને અમારા વપરાશકર્તાઓને અમારી સાઇટ અને ઇન્ટરનેટ પરની અન્ય સાઇટ્સની મુલાકાતના આધારે જાહેરાતો આપવા માટે સક્ષમ બનાવે છે.</li>
-                <li>વપરાશકર્તાઓ <a href="https://policies.google.com/technologies/ads" target="_blank" rel="nofollow" className="text-blue-600 underline">Google જાહેરાત અને સામગ્રી નેટવર્ક ગોપનીયતા નીતિ</a> ની મુલાકાત લઈને DART કૂકીના ઉપયોગને નાપસંદ કરી શકે છે.</li>
-            </ul>
-        </div>
-        <p className="mt-2">અમે અમારી સાઈટ પર જાહેરાતો બતાવવા માટે Google AdSense જેવી તૃતીય-પક્ષ જાહેરાત કંપનીઓનો ઉપયોગ કરીએ છીએ. આ કંપનીઓ તમારી મુલાકાતો વિશેની માહિતી (તમારા નામ, સરનામું, ઇમેઇલ સરનામું અથવા ટેલિફોન નંબર સિવાય) નો ઉપયોગ કરી શકે છે જેથી તમને રસ હોય તેવી ચીજવસ્તુઓ અને સેવાઓ વિશે જાહેરાતો પ્રદાન કરી શકાય.</p>
-
-        <h3 className="font-bold text-lg mt-4 text-gray-900">3. માહિતીનો ઉપયોગ (Use of Information)</h3>
+        <h3 className="font-bold text-lg mt-4 text-gray-900">2. માહિતીનો ઉપયોગ (Use of Information)</h3>
         <p>તમારા દ્વારા આપવામાં આવેલી માહિતી (જેમ કે રોજગાર અથવા વેપાર માટે) સાર્વજનિક રૂપે પોર્ટલ પર પ્રદર્શિત કરવામાં આવે છે જેથી અન્ય ગ્રામજનો તમારો સંપર્ક કરી શકે. તમે જાહેરમાં શેર કરેલી માહિતી માટે અમે જવાબદાર નથી.</p>
 
-        <h3 className="font-bold text-lg mt-4 text-gray-900">4. વપરાશકર્તાની સંમતિ (Consent)</h3>
+        <h3 className="font-bold text-lg mt-4 text-gray-900">3. વપરાશકર્તાની સંમતિ (Consent)</h3>
         <p>અમારી વેબસાઇટનો ઉપયોગ કરીને, તમે અમારી ગોપનીયતા નીતિ અને તેના નિયમો સાથે સંમત થાઓ છો.</p>
 
-        <h3 className="font-bold text-lg mt-4 text-gray-900">5. સંપર્ક (Contact)</h3>
+        <h3 className="font-bold text-lg mt-4 text-gray-900">4. સંપર્ક (Contact)</h3>
         <p>જો તમને આ ગોપનીયતા નીતિ વિશે કોઈ પ્રશ્નો હોય, તો તમે અમારો સંપર્ક કરી શકો છો: bharadagrampanchayat@gmail.com</p>
       </div>
     </div>
