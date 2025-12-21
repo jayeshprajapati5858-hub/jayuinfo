@@ -1,9 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { db } from '../firebaseConfig';
-import { collection, addDoc, query, orderBy, onSnapshot, limit } from "firebase/firestore";
 
 interface Notice {
-  id: string; // Changed to string for Firestore ID
+  id: string;
   type: 'death' | 'event' | 'general';
   title: string;
   description: string;
@@ -28,10 +27,12 @@ const NoticeBoard: React.FC = () => {
   const [newContact, setNewContact] = useState('');
   const [newMobile, setNewMobile] = useState('');
   
-  // Notification State (Kept local as keys are private)
+  // Notification State
   const [sendNotification, setSendNotification] = useState(false);
-  const [apiKey, setApiKey] = useState(() => localStorage.getItem('onesignal_api_key') || '');
-  const [appId, setAppId] = useState(() => localStorage.getItem('onesignal_app_id') || '');
+  
+  // Removed unused setters setApiKey and setAppId to fix build error
+  const [apiKey] = useState(() => localStorage.getItem('onesignal_api_key') || '');
+  const [appId] = useState(() => localStorage.getItem('onesignal_app_id') || '');
 
   // Persist OneSignal Keys locally
   useEffect(() => {
@@ -39,43 +40,34 @@ const NoticeBoard: React.FC = () => {
     localStorage.setItem('onesignal_app_id', appId);
   }, [apiKey, appId]);
 
-  // --- Real-time Data Listener from Firebase ---
+  // --- Real-time Data Listener from Firebase (Namespaced Syntax) ---
   useEffect(() => {
-    // 1. Create a query against the collection.
-    // We order by timestamp descending to show newest first.
-    // We limit to 50 to save data usage.
     try {
-        const q = query(
-            collection(db, "notices"), 
-            orderBy("timestamp", "desc"),
-            limit(50) 
-        );
+        const unsubscribe = db.collection("notices")
+            .orderBy("timestamp", "desc")
+            .limit(50)
+            .onSnapshot((querySnapshot: any) => {
+                const fetchedNotices: Notice[] = [];
+                const oneDayMs = 24 * 60 * 60 * 1000;
+                const now = Date.now();
 
-        // 2. Listen for real-time updates
-        const unsubscribe = onSnapshot(q, (querySnapshot) => {
-            const fetchedNotices: Notice[] = [];
-            const oneDayMs = 24 * 60 * 60 * 1000;
-            const now = Date.now();
-
-            querySnapshot.forEach((doc) => {
-                const data = doc.data() as Omit<Notice, 'id'>;
-                // Filter 24 hours logic client side or add a where clause
-                if (now - data.timestamp < oneDayMs) {
-                    fetchedNotices.push({ id: doc.id, ...data });
+                querySnapshot.forEach((doc: any) => {
+                    const data = doc.data() as Omit<Notice, 'id'>;
+                    // Filter 24 hours logic client side
+                    if (now - data.timestamp < oneDayMs) {
+                        fetchedNotices.push({ id: doc.id, ...data });
+                    }
+                });
+                setNotices(fetchedNotices);
+                setLoading(false);
+            }, (err: any) => {
+                console.error("Firebase Error:", err);
+                setLoading(false); 
+                if(err.code === 'permission-denied' || err.code === 'unavailable') {
+                    setError("ડેટાબેઝ સાથે કનેક્ટ નથી થઈ શક્યું. કૃપા કરીને admin નો સંપર્ક કરો.");
                 }
             });
-            setNotices(fetchedNotices);
-            setLoading(false);
-        }, (err) => {
-            console.error("Firebase Error:", err);
-            // Don't show error to user immediately, might be just config missing
-            setLoading(false); 
-            if(err.code === 'permission-denied' || err.code === 'unavailable') {
-                setError("ડેટાબેઝ સાથે કનેક્ટ નથી થઈ શક્યું. કૃપા કરીને admin નો સંપર્ક કરો.");
-            }
-        });
 
-        // 3. Cleanup listener on unmount
         return () => unsubscribe();
     } catch (err) {
         console.error("Initialization Error", err);
@@ -93,8 +85,8 @@ const NoticeBoard: React.FC = () => {
     }
 
     try {
-        // Save to Firestore
-        await addDoc(collection(db, "notices"), {
+        // Save to Firestore (Namespaced Syntax)
+        await db.collection("notices").add({
             type: newType,
             title: newTitle,
             description: newDesc,

@@ -1,6 +1,6 @@
-import { initializeApp } from "firebase/app";
-import { getFirestore } from "firebase/firestore";
-import { getAnalytics } from "firebase/analytics";
+import firebase from "firebase/app";
+import "firebase/firestore";
+import "firebase/analytics";
 
 // Your web app's Firebase configuration
 const firebaseConfig = {
@@ -14,10 +14,10 @@ const firebaseConfig = {
 };
 
 // Initialize Firebase
-const app = initializeApp(firebaseConfig);
+const app = !firebase.apps.length ? firebase.initializeApp(firebaseConfig) : firebase.app();
 
-// Initialize Cloud Firestore and get a reference to the service (Used for Notice Board)
-export const db = getFirestore(app);
+// Initialize Cloud Firestore and get a reference to the service
+export const db = firebase.firestore();
 
-// Initialize Analytics (Optional)
-const analytics = getAnalytics(app);
+// Initialize Analytics
+export const analytics = firebase.analytics();
