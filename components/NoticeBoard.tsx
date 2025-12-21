@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { db } from '../firebaseConfig';
 
 interface Notice {
   id: string;
@@ -16,9 +15,12 @@ const NoticeBoard: React.FC = () => {
   // State Management
   const [activeTab, setActiveTab] = useState<'all' | 'death' | 'event' | 'general'>('all');
   const [showForm, setShowForm] = useState(false);
-  const [notices, setNotices] = useState<Notice[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
+  
+  // Local Data Management
+  const [notices, setNotices] = useState<Notice[]>(() => {
+    const saved = localStorage.getItem('local_notices');
+    return saved ? JSON.parse(saved) : [];
+  });
 
   // Form States
   const [newType, setNewType] = useState<'death' | 'event' | 'general'>('general');
@@ -29,8 +31,6 @@ const NoticeBoard: React.FC = () => {
   
   // Notification State
   const [sendNotification, setSendNotification] = useState(false);
-  
-  // Removed unused setters setApiKey and setAppId to fix build error
   const [apiKey] = useState(() => localStorage.getItem('onesignal_api_key') || '');
   const [appId] = useState(() => localStorage.getItem('onesignal_app_id') || '');
 
@@ -40,40 +40,10 @@ const NoticeBoard: React.FC = () => {
     localStorage.setItem('onesignal_app_id', appId);
   }, [apiKey, appId]);
 
-  // --- Real-time Data Listener from Firebase (Namespaced Syntax) ---
+  // Persist Notices locally
   useEffect(() => {
-    try {
-        const unsubscribe = db.collection("notices")
-            .orderBy("timestamp", "desc")
-            .limit(50)
-            .onSnapshot((querySnapshot: any) => {
-                const fetchedNotices: Notice[] = [];
-                const oneDayMs = 24 * 60 * 60 * 1000;
-                const now = Date.now();
-
-                querySnapshot.forEach((doc: any) => {
-                    const data = doc.data() as Omit<Notice, 'id'>;
-                    // Filter 24 hours logic client side
-                    if (now - data.timestamp < oneDayMs) {
-                        fetchedNotices.push({ id: doc.id, ...data });
-                    }
-                });
-                setNotices(fetchedNotices);
-                setLoading(false);
-            }, (err: any) => {
-                console.error("Firebase Error:", err);
-                setLoading(false); 
-                if(err.code === 'permission-denied' || err.code === 'unavailable') {
-                    setError("ડેટાબેઝ સાથે કનેક્ટ નથી થઈ શક્યું. કૃપા કરીને admin નો સંપર્ક કરો.");
-                }
-            });
-
-        return () => unsubscribe();
-    } catch (err) {
-        console.error("Initialization Error", err);
-        setLoading(false);
-    }
-  }, []);
+    localStorage.setItem('local_notices', JSON.stringify(notices));
+  }, [notices]);
 
   // Handle Form Submission
   const handleSubmit = async (e: React.FormEvent) => {
@@ -85,8 +55,8 @@ const NoticeBoard: React.FC = () => {
     }
 
     try {
-        // Save to Firestore (Namespaced Syntax)
-        await db.collection("notices").add({
+        const newNotice: Notice = {
+            id: Date.now().toString(),
             type: newType,
             title: newTitle,
             description: newDesc,
@@ -94,9 +64,11 @@ const NoticeBoard: React.FC = () => {
             contactPerson: newContact,
             mobile: newMobile,
             timestamp: Date.now(),
-        });
+        };
 
-        // Attempt Push Notification
+        setNotices(prev => [newNotice, ...prev]);
+
+        // Attempt Push Notification (Independent of Firebase)
         if (sendNotification && apiKey && appId) {
             triggerNotification(`નવી નોટિસ: ${newTitle}`, newDesc.substring(0, 50) + "...");
         }
@@ -110,12 +82,18 @@ const NoticeBoard: React.FC = () => {
         setNewContact('');
         setNewMobile('');
 
-        alert("તમારી જાહેરાત સફળતાપૂર્વક લાઈવ થઈ ગઈ છે! હવે તે બધા ગ્રામજનોને દેખાશે.");
+        alert("તમારી જાહેરાત સફળતાપૂર્વક લાઈવ થઈ ગઈ છે! (Local Storage)");
 
     } catch (e) {
-        console.error("Error adding document: ", e);
-        alert("જાહેરાત મૂકવામાં ભૂલ આવી છે. કૃપા કરીને ચેક કરો કે ઇન્ટરનેટ ચાલુ છે.");
+        console.error("Error adding notice: ", e);
+        alert("ભૂલ આવી છે.");
     }
+  };
+
+  const handleDelete = (id: string) => {
+      if(window.confirm('શું તમે આ નોટિસ ડિલીટ કરવા માંગો છો?')) {
+          setNotices(notices.filter(n => n.id !== id));
+      }
   };
 
   // Helper: Send Push Notification
@@ -157,8 +135,8 @@ const NoticeBoard: React.FC = () => {
       {/* Header & Add Button */}
       <div className="flex justify-between items-center mb-6">
         <div>
-           <h2 className="text-xl font-bold text-gray-800">ડિજિટલ નોટિસ બોર્ડ (Live)</h2>
-           <p className="text-xs text-gray-500">જાહેરાત ૨૪ કલાક સુધી લાઈવ રહેશે</p>
+           <h2 className="text-xl font-bold text-gray-800">ડિજિટલ નોટિસ બોર્ડ</h2>
+           <p className="text-xs text-gray-500">ગામની તાજી ખબરો અને સૂચનાઓ</p>
         </div>
         <button 
           onClick={() => setShowForm(true)}
@@ -191,21 +169,9 @@ const NoticeBoard: React.FC = () => {
         ))}
       </div>
 
-      {/* Connection Warning if Config is missing */}
-      {error && (
-          <div className="bg-red-50 border border-red-200 p-4 rounded-xl mb-4 text-center">
-              <p className="text-red-600 font-bold text-sm">⚠️ {error}</p>
-              <p className="text-red-400 text-xs mt-1">Firebase Config સેટ કરેલ નથી.</p>
-          </div>
-      )}
-
       {/* Notice List */}
       <div className="space-y-4">
-        {loading ? (
-            <div className="flex justify-center py-12">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
-            </div>
-        ) : filteredNotices.length === 0 ? (
+        {filteredNotices.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12 px-4 bg-gray-50 rounded-xl border-2 border-dashed border-gray-300">
                 <div className="bg-white p-3 rounded-full mb-3 shadow-sm">
                     <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z"></path></svg>
@@ -230,9 +196,14 @@ const NoticeBoard: React.FC = () => {
                         }`}>
                             {notice.type === 'death' ? 'શ્રદ્ધાંજલિ' : notice.type === 'event' ? 'ઉત્સવ' : 'જાહેરાત'}
                         </span>
-                        <span className="text-[10px] text-gray-400 font-mono bg-gray-50 px-1.5 py-0.5 rounded">
-                            {notice.date}
-                        </span>
+                        <div className="flex items-center gap-2">
+                            <span className="text-[10px] text-gray-400 font-mono bg-gray-50 px-1.5 py-0.5 rounded">
+                                {notice.date}
+                            </span>
+                            <button onClick={() => handleDelete(notice.id)} className="text-red-400 hover:text-red-600">
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                            </button>
+                        </div>
                     </div>
 
                     <h3 className="text-lg font-bold text-gray-900 mb-2 leading-tight">{notice.title}</h3>
