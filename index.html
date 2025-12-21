@@ -31,15 +31,13 @@
     <script>
       window.OneSignalDeferred = window.OneSignalDeferred || [];
       window.OneSignalDeferred.push(async function(OneSignal) {
+        // Prevent initialization errors on non-production domains if strict mode is on
         const hostname = window.location.hostname;
-        const allowedDomains = ['jayuinfo.in', 'www.jayuinfo.in', 'localhost', '127.0.0.1'];
+        const isAllowedDomain = hostname === 'www.jayuinfo.in' || hostname === 'jayuinfo.in' || hostname === 'localhost' || hostname === '127.0.0.1';
         
-        // Allow if exact match or subdomain of jayuinfo.in or localhost
-        const isAllowed = allowedDomains.some(d => hostname === d) || hostname.endsWith('.jayuinfo.in') || hostname.startsWith('192.168.');
-
-        if (isAllowed) {
+        if (isAllowedDomain) {
           await OneSignal.init({
-            appId: "9be8c63c-d480-4eb7-a3b2-61a6bbf104df",
+            appId: "9db43331-0de9-424f-999d-0fa82d497d5f",
             allowLocalhostAsSecureOrigin: true,
           });
         } else {
