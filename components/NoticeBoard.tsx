@@ -11,15 +11,38 @@ interface Notice {
   timestamp: number;
 }
 
+const initialNotices: Notice[] = [
+  {
+    id: '1',
+    type: 'general',
+    title: 'ગ્રામ પંચાયત કચેરી સમય',
+    description: 'પંચાયત કચેરી સવારે ૧૦:૩૦ થી સાંજે ૫:૦૦ સુધી ખુલ્લી રહેશે. બીજા અને ચોથા શનિવારે રજા રહેશે.',
+    date: new Date().toLocaleDateString('gu-IN'),
+    contactPerson: 'તલાટી કમ મંત્રી',
+    mobile: '',
+    timestamp: Date.now()
+  },
+  {
+    id: '2',
+    type: 'event',
+    title: 'આરોગ્ય કેમ્પનું આયોજન',
+    description: 'આવતા રવિવારે પ્રાથમિક શાળા ખાતે નિઃશુલ્ક નેત્ર નિદાન કેમ્પ રાખેલ છે.',
+    date: new Date().toLocaleDateString('gu-IN'),
+    contactPerson: 'સરપંચશ્રી',
+    mobile: '9106162151',
+    timestamp: Date.now() - 100000 // Slightly earlier
+  }
+];
+
 const NoticeBoard: React.FC = () => {
   // State Management
   const [activeTab, setActiveTab] = useState<'all' | 'death' | 'event' | 'general'>('all');
   const [showForm, setShowForm] = useState(false);
   
-  // Local Data Management
+  // Local Data Management - Using 'villageNotices' to sync with App.tsx Ticker
   const [notices, setNotices] = useState<Notice[]>(() => {
-    const saved = localStorage.getItem('local_notices');
-    return saved ? JSON.parse(saved) : [];
+    const saved = localStorage.getItem('villageNotices');
+    return saved ? JSON.parse(saved) : initialNotices;
   });
 
   // Form States
@@ -36,13 +59,13 @@ const NoticeBoard: React.FC = () => {
 
   // Persist OneSignal Keys locally
   useEffect(() => {
-    localStorage.setItem('onesignal_api_key', apiKey);
-    localStorage.setItem('onesignal_app_id', appId);
+    if(apiKey) localStorage.setItem('onesignal_api_key', apiKey);
+    if(appId) localStorage.setItem('onesignal_app_id', appId);
   }, [apiKey, appId]);
 
   // Persist Notices locally
   useEffect(() => {
-    localStorage.setItem('local_notices', JSON.stringify(notices));
+    localStorage.setItem('villageNotices', JSON.stringify(notices));
   }, [notices]);
 
   // Handle Form Submission
@@ -82,7 +105,7 @@ const NoticeBoard: React.FC = () => {
         setNewContact('');
         setNewMobile('');
 
-        alert("તમારી જાહેરાત સફળતાપૂર્વક લાઈવ થઈ ગઈ છે! (Local Storage)");
+        alert("તમારી જાહેરાત સફળતાપૂર્વક લાઈવ થઈ ગઈ છે!");
 
     } catch (e) {
         console.error("Error adding notice: ", e);
@@ -200,7 +223,7 @@ const NoticeBoard: React.FC = () => {
                             <span className="text-[10px] text-gray-400 font-mono bg-gray-50 px-1.5 py-0.5 rounded">
                                 {notice.date}
                             </span>
-                            <button onClick={() => handleDelete(notice.id)} className="text-red-400 hover:text-red-600">
+                            <button onClick={() => handleDelete(notice.id)} className="text-red-400 hover:text-red-600" title="Delete">
                                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg>
                             </button>
                         </div>
