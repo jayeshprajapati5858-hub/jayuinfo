@@ -5,17 +5,6 @@ interface BeneficiaryListProps {
   data: Beneficiary[];
 }
 
-// Helper to mask/format Application Number
-const formatAppNumber = (appNo: string) => {
-  if (!appNo || appNo.length <= 4) return appNo;
-  const last4 = appNo.slice(-4);
-  return (
-    <span className="font-mono tracking-wide text-gray-600">
-      •••• {last4}
-    </span>
-  );
-};
-
 // Helper to mask Account Number (Privacy Compliance)
 const formatAccountNo = (accNo: string) => {
   if (!accNo || accNo.length <= 2) return accNo;
