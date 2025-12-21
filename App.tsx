@@ -22,9 +22,9 @@ import GeneralComplaints from './components/GeneralComplaints';
 import StudentCorner from './components/StudentCorner';
 import BloodDonors from './components/BloodDonors';
 import NewsSection from './components/NewsSection';
-import AdSenseSlot from './components/AdSenseSlot';
 import { PrivacyPolicy, TermsConditions } from './components/LegalPages';
 import { beneficiaryData } from './data/beneficiaries';
+import { Beneficiary } from './types';
 
 // --- Phonetic Search Logic ---
 const normalizeToSkeleton = (text: string) => {
@@ -99,16 +99,10 @@ const App: React.FC = () => {
       setHasNewJobs(recentJob);
   };
 
-  // Check for updates on mount, poll, AND listen for instant events
   useEffect(() => {
     checkUpdates();
-    
-    // Poll every 5 seconds as fallback
     const interval = setInterval(checkUpdates, 5000);
-
-    // Listen for custom event for INSTANT updates
     window.addEventListener('noticeUpdate', checkUpdates);
-    
     return () => {
         clearInterval(interval);
         window.removeEventListener('noticeUpdate', checkUpdates);
@@ -118,7 +112,7 @@ const App: React.FC = () => {
   const filteredData = useMemo(() => {
     if (!searchQuery.trim()) return beneficiaryData;
     const searchTerms = searchQuery.toLowerCase().trim().split(/\s+/);
-    return beneficiaryData.filter((item) => {
+    return beneficiaryData.filter((item: Beneficiary) => {
       const itemData = `${item.id} ${item.applicationNo} ${item.name} ${item.accountNo} ${item.village}`.toLowerCase();
       const itemSkeleton = normalizeToSkeleton(itemData);
       return searchTerms.every(term => {
@@ -161,165 +155,66 @@ const App: React.FC = () => {
 
   return (
     <div className="min-h-screen flex flex-col bg-[#F8FAFC] font-sans text-gray-900">
-      
       <Header />
-      
-      {/* Top Spacer for Fixed Header */}
       <div className="h-[60px]"></div>
-
       <NoticeTicker notices={tickerNotices} />
-      
       <main className="flex-grow w-full max-w-2xl mx-auto px-4 py-6 pb-28">
-        
-        {/* --- VIEW: HOME (Production Ready Dashboard) --- */}
         {currentView === 'home' && (
           <div className="animate-fade-in space-y-6">
-            
-            {/* 1. Hero / Welcome Grid - Responsive Layout */}
             <div className="grid grid-cols-1 sm:grid-cols-5 gap-3">
-               {/* Welcome Card */}
                <div className="col-span-1 sm:col-span-3 bg-white rounded-3xl p-5 shadow-sm border border-gray-100 flex flex-col justify-between relative overflow-hidden min-h-[160px]">
                   <div className="absolute top-0 right-0 w-24 h-24 bg-emerald-100 rounded-full blur-2xl -mr-8 -mt-8"></div>
                   <div>
                     <h2 className="text-lg font-bold text-gray-800">સ્વાગત છે 👋</h2>
-                    <p className="text-xs text-gray-500 mt-1 leading-relaxed">
-                      ગામની તમામ માહિતી અને સુવિધાઓ હવે તમારી આંગળીના ટેરવે.
-                    </p>
+                    <p className="text-xs text-gray-500 mt-1 leading-relaxed">ગામની તમામ માહિતી અને સુવિધાઓ હવે તમારી આંગળીના ટેરવે.</p>
                   </div>
-                  <button 
-                    onClick={() => setCurrentView('panchayat')}
-                    className="text-emerald-600 text-xs font-bold flex items-center gap-1 hover:gap-2 transition-all mt-2"
-                  >
-                    પંચાયત સંપર્ક <span className="text-lg">→</span>
-                  </button>
+                  <button onClick={() => setCurrentView('panchayat')} className="text-emerald-600 text-xs font-bold flex items-center gap-1 mt-2">પંચાયત સંપર્ક <span className="text-lg">→</span></button>
                </div>
-
-               {/* Weather Widget */}
-               <div className="col-span-1 sm:col-span-2 min-h-[160px]">
-                 <WeatherWidget />
-               </div>
+               <div className="col-span-1 sm:col-span-2 min-h-[160px]"><WeatherWidget /></div>
             </div>
-
-            {/* AdSlot - Banner Ad between Hero and Search */}
-            <AdSenseSlot slotId="HOME_TOP_BANNER_SLOT" />
-
-            {/* 2. Primary Action: Search Trigger (Looks like Input) */}
-            <div 
-              onClick={() => setCurrentView('search')}
-              className="bg-white rounded-2xl p-4 shadow-lg shadow-emerald-100/50 border border-emerald-100 cursor-pointer transform active:scale-[0.98] transition-all group"
-            >
+            <div onClick={() => setCurrentView('search')} className="bg-white rounded-2xl p-4 shadow-lg border border-emerald-100 cursor-pointer transform active:scale-[0.98] transition-all group">
                <div className="flex items-center gap-4">
-                  <div className="bg-emerald-50 text-emerald-600 p-3 rounded-xl group-hover:bg-emerald-100 transition-colors">
-                     <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
-                  </div>
+                  <div className="bg-emerald-50 text-emerald-600 p-3 rounded-xl group-hover:bg-emerald-100"><svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg></div>
                   <div className="flex-1">
                      <h3 className="text-gray-900 font-bold text-base">DBT લિસ્ટમાં તમારું નામ તપાસો</h3>
                      <p className="text-gray-400 text-xs mt-0.5">યાદીમાં તમારું નામ છે કે નહિ તે જાણવા ક્લિક કરો...</p>
                   </div>
-                  <div className="bg-gray-50 p-1.5 rounded-lg border border-gray-100">
-                     <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7"></path></svg>
-                  </div>
                </div>
             </div>
-
-            {/* 3. Services Grid (Daily Utilities) */}
             <div>
-              <div className="flex items-center justify-between px-1 mb-3">
-                 <h3 className="text-sm font-bold text-gray-800">ઝડપી સુવિધાઓ</h3>
-              </div>
+              <div className="flex items-center justify-between px-1 mb-3"><h3 className="text-sm font-bold text-gray-800">ઝડપી સુવિધાઓ</h3></div>
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                  {servicesList.slice(0, 6).map((service) => (
-                     <button 
-                        key={service.id}
-                        onClick={() => handleServiceClick(service.id as ServiceType)}
-                        className={`p-4 rounded-2xl border border-gray-100 shadow-sm flex flex-col items-center gap-3 hover:shadow-md transition-all active:scale-95 relative ${service.id === 'news' ? 'bg-indigo-600 text-white' : 'bg-white'}`}
-                     >
-                        {service.hasNotification && (
-                          <span className="absolute top-3 right-3 w-3 h-3 bg-red-500 rounded-full border-2 border-white animate-pulse shadow-sm"></span>
-                        )}
-                        <div className={`w-10 h-10 rounded-full flex items-center justify-center ${service.id === 'news' ? 'bg-white/20 text-white' : service.color}`}>
-                           {service.icon}
-                        </div>
+                     <button key={service.id} onClick={() => handleServiceClick(service.id as ServiceType)} className={`p-4 rounded-2xl border border-gray-100 shadow-sm flex flex-col items-center gap-3 active:scale-95 relative ${service.id === 'news' ? 'bg-indigo-600 text-white' : 'bg-white'}`}>
+                        {service.hasNotification && <span className="absolute top-3 right-3 w-3 h-3 bg-red-500 rounded-full border-2 border-white animate-pulse shadow-sm"></span>}
+                        <div className={`w-10 h-10 rounded-full flex items-center justify-center ${service.id === 'news' ? 'bg-white/20 text-white' : service.color}`}>{service.icon}</div>
                         <span className={`text-xs font-bold ${service.id === 'news' ? 'text-white' : 'text-gray-700'}`}>{service.label}</span>
                      </button>
                  ))}
               </div>
             </div>
-
-            {/* Footer Ad Slot */}
-            <AdSenseSlot slotId="HOME_FOOTER_AD_SLOT" />
-
-            <div className="text-center pb-4 pt-4">
-              <p className="text-[10px] text-gray-400">© 2024 Bharada Gram Panchayat</p>
-            </div>
+            <div className="text-center pb-4 pt-4"><p className="text-[10px] text-gray-400">© 2024 Bharada Gram Panchayat</p></div>
           </div>
         )}
-
-        {/* --- VIEW: SEARCH --- */}
         {currentView === 'search' && (
            <div className="animate-fade-in space-y-4">
-              <div className="flex items-center gap-2 px-1 mb-2">
-                 <button onClick={() => setCurrentView('home')} className="p-2 -ml-2 rounded-full hover:bg-gray-100 text-gray-500">
-                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7"></path></svg>
-                 </button>
-                 <h2 className="text-xl font-bold text-gray-800">DBT યાદીમાં નામ શોધો</h2>
-              </div>
-              
-              <div className="sticky top-[70px] z-30 bg-[#F8FAFC] pb-2">
-                 <div className="bg-white rounded-2xl shadow-lg shadow-emerald-100/50 border border-emerald-100 p-2">
-                    <SearchBar value={searchQuery} onChange={setSearchQuery} />
-                 </div>
-              </div>
-              
-              {/* Ad Slot in Search Results */}
-              <AdSenseSlot slotId="SEARCH_RESULT_AD_SLOT" />
-
-              <div className="bg-white rounded-2xl shadow-sm border border-gray-200 px-4 pb-4 min-h-[500px]">
-                 <BeneficiaryList data={filteredData} />
-              </div>
+              <div className="flex items-center gap-2 px-1 mb-2"><button onClick={() => setCurrentView('home')} className="p-2 -ml-2 rounded-full text-gray-500"><svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7"></path></svg></button><h2 className="text-xl font-bold text-gray-800">DBT યાદીમાં નામ શોધો</h2></div>
+              <div className="sticky top-[70px] z-30 bg-[#F8FAFC] pb-2"><div className="bg-white rounded-2xl shadow-lg border border-emerald-100 p-2"><SearchBar value={searchQuery} onChange={setSearchQuery} /></div></div>
+              <div className="bg-white rounded-2xl shadow-sm border border-gray-200 px-4 pb-4 min-h-[500px]"><BeneficiaryList data={filteredData} /></div>
            </div>
         )}
-
-        {/* --- VIEW: SERVICES --- */}
         {currentView === 'services' && (
           <div className="animate-fade-in">
-             <div className="flex items-center gap-2 px-1 mb-4">
-                 <button onClick={() => setCurrentView('home')} className="p-2 -ml-2 rounded-full hover:bg-gray-100 text-gray-500">
-                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7"></path></svg>
-                 </button>
-                 <h2 className="text-xl font-bold text-gray-800">ગ્રામ્ય સેવાઓ</h2>
-              </div>
-
-            {/* Service Selection Grid */}
+             <div className="flex items-center gap-2 px-1 mb-4"><button onClick={() => setCurrentView('home')} className="p-2 -ml-2 rounded-full text-gray-500"><svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7"></path></svg></button><h2 className="text-xl font-bold text-gray-800">ગ્રામ્ય સેવાઓ</h2></div>
             <div className={`grid grid-cols-3 gap-2 mb-6 ${activeService ? 'bg-white p-2 rounded-xl border border-gray-200 shadow-sm' : ''}`}>
                {servicesList.map((service) => (
-                   <button
-                     key={service.id}
-                     onClick={() => setActiveService(service.id as ServiceType)}
-                     className={`flex flex-col items-center justify-center p-2 rounded-lg transition-all relative ${
-                         activeService === service.id 
-                         ? 'bg-gray-900 text-white shadow-lg scale-105' 
-                         : 'bg-white text-gray-500 hover:bg-gray-50 border border-transparent hover:border-gray-200'
-                     } ${!activeService ? 'bg-white border-gray-100 shadow-sm py-4' : ''}`}
-                   >
-                       {/* Red Dot Badge */}
-                       {service.hasNotification && (
-                          <span className="absolute top-1 right-1 w-2.5 h-2.5 bg-red-500 rounded-full border border-white"></span>
-                       )}
-                       <div className={`${activeService === service.id ? 'text-white' : 'text-current'} scale-75`}>
-                           {service.icon}
-                       </div>
+                   <button key={service.id} onClick={() => setActiveService(service.id as ServiceType)} className={`flex flex-col items-center justify-center p-2 rounded-lg transition-all relative ${activeService === service.id ? 'bg-gray-900 text-white shadow-lg scale-105' : 'bg-white text-gray-500 border border-transparent'} ${!activeService ? 'bg-white border-gray-100 shadow-sm py-4' : ''}`}>
+                       {service.hasNotification && <span className="absolute top-1 right-1 w-2.5 h-2.5 bg-red-500 rounded-full border border-white"></span>}
+                       <div className={`${activeService === service.id ? 'text-white' : 'text-current'} scale-75`}>{service.icon}</div>
                        <span className="text-[10px] font-bold mt-1">{service.label}</span>
                    </button>
                ))}
             </div>
-            
-            {!activeService && (
-                <div className="text-center py-10 opacity-50">
-                    <p>કોઈ એક સેવા પસંદ કરો.</p>
-                </div>
-            )}
-
             {activeService === 'market' && <MarketRates />}
             {activeService === 'water' && <WaterSupply />}
             {activeService === 'health' && <HealthCenter />}
@@ -335,114 +230,37 @@ const App: React.FC = () => {
             {activeService === 'student' && <StudentCorner />}
             {activeService === 'blood' && <BloodDonors />}
             {activeService === 'news' && <NewsSection />}
-
           </div>
         )}
-
-        {/* --- VIEW: PANCHAYAT --- */}
         {currentView === 'panchayat' && (
           <div className="animate-fade-in">
-             <div className="flex items-center gap-2 px-1 mb-4">
-                 <button onClick={() => setCurrentView('home')} className="p-2 -ml-2 rounded-full hover:bg-gray-100 text-gray-500">
-                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7"></path></svg>
-                 </button>
-                 <h2 className="text-xl font-bold text-gray-800">પંચાયત સંપર્ક</h2>
-              </div>
+             <div className="flex items-center gap-2 px-1 mb-4"><button onClick={() => setCurrentView('home')} className="p-2 -ml-2 rounded-full text-gray-500"><svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7"></path></svg></button><h2 className="text-xl font-bold text-gray-800">પંચાયત સંપર્ક</h2></div>
             <PanchayatInfo />
           </div>
         )}
-
-        {/* --- VIEW: MORE --- */}
         {currentView === 'more' && (
           <div className="animate-fade-in space-y-8">
-             <div className="flex items-center gap-2 px-1">
-                 <button onClick={() => setCurrentView('home')} className="p-2 -ml-2 rounded-full hover:bg-gray-100 text-gray-500">
-                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7"></path></svg>
-                 </button>
-                 <h2 className="text-xl font-bold text-gray-800">અન્ય માહિતી</h2>
-              </div>
-             <EmergencyContacts />
-             <ImportantLinks />
-             <PhotoGallery />
-             
-             {/* New Legal Links Section */}
-             <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
-                <h3 className="text-sm font-bold text-gray-700 mb-3">કાનૂની માહિતી (Legal)</h3>
+             <div className="flex items-center gap-2 px-1"><button onClick={() => setCurrentView('home')} className="p-2 -ml-2 rounded-full text-gray-500"><svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7"></path></svg></button><h2 className="text-xl font-bold text-gray-800">અન્ય માહિતી</h2></div>
+             <EmergencyContacts /><ImportantLinks /><PhotoGallery />
+             <div className="bg-white rounded-xl border border-gray-100 p-4"><h3 className="text-sm font-bold text-gray-700 mb-3">કાનૂની માહિતી (Legal)</h3>
                 <div className="flex flex-col gap-2">
-                  <button 
-                    onClick={() => setCurrentView('privacy')}
-                    className="flex justify-between items-center text-sm p-2 hover:bg-gray-50 rounded"
-                  >
-                    <span>Privacy Policy</span>
-                    <span className="text-gray-400">→</span>
-                  </button>
-                  <button 
-                    onClick={() => setCurrentView('terms')}
-                    className="flex justify-between items-center text-sm p-2 hover:bg-gray-50 rounded"
-                  >
-                    <span>Terms & Conditions</span>
-                    <span className="text-gray-400">→</span>
-                  </button>
+                  <button onClick={() => setCurrentView('privacy')} className="flex justify-between items-center text-sm p-2 hover:bg-gray-50 rounded"><span>Privacy Policy</span><span className="text-gray-400">→</span></button>
+                  <button onClick={() => setCurrentView('terms')} className="flex justify-between items-center text-sm p-2 hover:bg-gray-50 rounded"><span>Terms & Conditions</span><span className="text-gray-400">→</span></button>
                 </div>
              </div>
-
-             <div className="text-center pt-8 border-t border-gray-200">
-                <p className="text-xs text-gray-400">App Version 2.3.0 (Beta)</p>
-             </div>
+             <div className="text-center pt-8 border-t border-gray-200"><p className="text-xs text-gray-400">App Version 2.3.0 (Beta)</p></div>
           </div>
         )}
-
-        {/* --- VIEW: PRIVACY POLICY --- */}
-        {currentView === 'privacy' && (
-           <div className="animate-fade-in">
-              <div className="flex items-center gap-2 px-1 mb-2">
-                 <button onClick={() => setCurrentView('more')} className="p-2 -ml-2 rounded-full hover:bg-gray-100 text-gray-500">
-                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7"></path></svg>
-                 </button>
-              </div>
-              <PrivacyPolicy />
-           </div>
-        )}
-
-        {/* --- VIEW: TERMS --- */}
-        {currentView === 'terms' && (
-           <div className="animate-fade-in">
-              <div className="flex items-center gap-2 px-1 mb-2">
-                 <button onClick={() => setCurrentView('more')} className="p-2 -ml-2 rounded-full hover:bg-gray-100 text-gray-500">
-                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7"></path></svg>
-                 </button>
-              </div>
-              <TermsConditions />
-           </div>
-        )}
-
+        {currentView === 'privacy' && <div className="animate-fade-in"><div className="flex items-center gap-2 mb-2"><button onClick={() => setCurrentView('more')} className="p-2 rounded-full text-gray-500"><svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7"></path></svg></button></div><PrivacyPolicy /></div>}
+        {currentView === 'terms' && <div className="animate-fade-in"><div className="flex items-center gap-2 mb-2"><button onClick={() => setCurrentView('more')} className="p-2 rounded-full text-gray-500"><svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7"></path></svg></button></div><TermsConditions /></div>}
       </main>
-
-      {/* 3. Bottom Navigation Bar (Glassmorphism) */}
-      <div className="fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-lg border-t border-gray-200 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] z-50">
-        <div className="max-w-2xl mx-auto flex justify-around items-center pb-safe pt-1">
+      <div className="fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-lg border-t border-gray-200 z-50">
+        <div className="max-w-2xl mx-auto flex justify-around items-center pt-1">
           {navItems.map((item) => (
-            <button
-              key={item.id}
-              onClick={() => {
-                  setCurrentView(item.id as any);
-                  if (item.id === 'services' && !activeService) setActiveService('notice');
-              }}
-              className="flex-1 py-2.5 group relative flex flex-col items-center justify-center focus:outline-none"
-            >
-              {/* Notification Badge on Nav (Only for Services) */}
-              {item.id === 'services' && (hasNewNotices || hasNewJobs) && (
-                <span className="absolute top-2 right-8 w-2 h-2 bg-red-500 rounded-full border border-white"></span>
-              )}
-              
-              <div className={`transition-all duration-300 rounded-full p-1 ${currentView === item.id ? '-translate-y-1 text-emerald-600 bg-emerald-50' : 'text-gray-400 group-hover:text-gray-600'}`}>
-                <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={currentView === item.id ? 2.5 : 2} d={item.icon} />
-                </svg>
-              </div>
-              <span className={`text-[10px] font-bold mt-0.5 ${currentView === item.id ? 'text-emerald-700' : 'text-gray-400 group-hover:text-gray-600'}`}>
-                {item.label}
-              </span>
+            <button key={item.id} onClick={() => { setCurrentView(item.id as any); if (item.id === 'services' && !activeService) setActiveService('notice'); }} className="flex-1 py-2.5 relative flex flex-col items-center">
+              {item.id === 'services' && (hasNewNotices || hasNewJobs) && <span className="absolute top-2 right-8 w-2 h-2 bg-red-500 rounded-full border border-white"></span>}
+              <div className={`transition-all rounded-full p-1 ${currentView === item.id ? 'text-emerald-600 bg-emerald-50' : 'text-gray-400'}`}><svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={currentView === item.id ? 2.5 : 2} d={item.icon} /></svg></div>
+              <span className={`text-[10px] font-bold mt-0.5 ${currentView === item.id ? 'text-emerald-700' : 'text-gray-400'}`}>{item.label}</span>
             </button>
           ))}
         </div>
