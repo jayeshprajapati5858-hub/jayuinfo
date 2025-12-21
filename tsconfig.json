@@ -16,5 +16,6 @@
     "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true
   },
-  "include": ["."]
+  "include": ["."],
+  "exclude": ["node_modules", "server.js", "db", "dist"]
 }

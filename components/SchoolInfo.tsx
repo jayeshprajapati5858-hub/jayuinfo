@@ -24,7 +24,9 @@ const SchoolInfo: React.FC = () => {
   const initDb = async () => {
       try {
         await pool.query(`CREATE TABLE IF NOT EXISTS school_updates (id SERIAL PRIMARY KEY, title TEXT, date_str TEXT)`);
-      } catch(e) {}
+      } catch(e) {
+        console.error("Init Error", e);
+      }
   };
 
   const fetchUpdates = async () => {
@@ -32,23 +34,33 @@ const SchoolInfo: React.FC = () => {
           await initDb();
           const res = await pool.query('SELECT * FROM school_updates ORDER BY id DESC');
           setUpdates(res.rows);
-      } catch(e) {}
+      } catch(e) {
+          console.error("Fetch Error", e);
+      }
   };
 
   useEffect(() => { fetchUpdates(); }, []);
 
   const addUpdate = async (e: React.FormEvent) => {
       e.preventDefault();
-      await pool.query(`INSERT INTO school_updates (title, date_str) VALUES ($1, $2)`, [newTitle, new Date().toLocaleDateString('gu-IN')]);
-      fetchUpdates();
-      setNewTitle('');
-      setShowForm(false);
+      try {
+        await pool.query(`INSERT INTO school_updates (title, date_str) VALUES ($1, $2)`, [newTitle, new Date().toLocaleDateString('gu-IN')]);
+        fetchUpdates();
+        setNewTitle('');
+        setShowForm(false);
+      } catch(err) {
+        console.error(err);
+      }
   };
 
   const deleteUpdate = async (id: number) => {
       if(confirm('Delete?')) {
-          await pool.query('DELETE FROM school_updates WHERE id = $1', [id]);
-          setUpdates(updates.filter(u => u.id !== id));
+          try {
+            await pool.query('DELETE FROM school_updates WHERE id = $1', [id]);
+            setUpdates(updates.filter(u => u.id !== id));
+          } catch(err) {
+            console.error(err);
+          }
       }
   };
 

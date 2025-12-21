@@ -61,13 +61,18 @@ const BusinessDirectory: React.FC = () => {
           setShowForm(false);
           setNewName(''); setNewOwner(''); setNewMobile(''); setNewDetails('');
           alert('દુકાન ઉમેરાઈ ગઈ!');
-      } catch(e) { alert('Error adding business'); }
+      } catch(e) { 
+        console.error(e);
+        alert('Error adding business'); 
+      }
   };
 
   const handleDelete = async (id: number) => {
       if(confirm('Delete this business?')) {
-          await pool.query('DELETE FROM businesses WHERE id = $1', [id]);
-          setBusinesses(businesses.filter(b => b.id !== id));
+          try {
+            await pool.query('DELETE FROM businesses WHERE id = $1', [id]);
+            setBusinesses(businesses.filter(b => b.id !== id));
+          } catch (e) { console.error(e); }
       }
   };
 

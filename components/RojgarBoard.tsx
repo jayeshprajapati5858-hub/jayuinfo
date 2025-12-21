@@ -63,13 +63,20 @@ const RojgarBoard: React.FC = () => {
           setShowForm(false);
           setNewTitle(''); setNewDetails(''); setNewWages(''); setNewContact(''); setNewMobile('');
           alert('જાહેરાત સફળતાપૂર્વક મુકાઈ ગઈ.');
-      } catch(e) { alert('Error saving job'); }
+      } catch(e) { 
+        console.error(e);
+        alert('Error saving job'); 
+      }
   };
 
   const handleDelete = async (id: number) => {
       if(confirm('Delete this listing?')) {
-          await pool.query('DELETE FROM jobs WHERE id = $1', [id]);
-          setListings(listings.filter(j => j.id !== id));
+          try {
+            await pool.query('DELETE FROM jobs WHERE id = $1', [id]);
+            setListings(listings.filter(j => j.id !== id));
+          } catch(e) {
+            console.error(e);
+          }
       }
   };
 
