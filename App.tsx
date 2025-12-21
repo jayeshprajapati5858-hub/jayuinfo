@@ -22,6 +22,7 @@ import GeneralComplaints from './components/GeneralComplaints';
 import StudentCorner from './components/StudentCorner';
 import BloodDonors from './components/BloodDonors';
 import NewsSection from './components/NewsSection';
+import AdSenseSlot from './components/AdSenseSlot';
 import { PrivacyPolicy, TermsConditions } from './components/LegalPages';
 import { beneficiaryData } from './data/beneficiaries';
 
@@ -199,6 +200,9 @@ const App: React.FC = () => {
                </div>
             </div>
 
+            {/* AdSlot - Banner Ad between Hero and Search */}
+            <AdSenseSlot slotId="HOME_TOP_BANNER_SLOT" />
+
             {/* 2. Primary Action: Search Trigger (Looks like Input) */}
             <div 
               onClick={() => setCurrentView('search')}
@@ -242,6 +246,9 @@ const App: React.FC = () => {
               </div>
             </div>
 
+            {/* Footer Ad Slot */}
+            <AdSenseSlot slotId="HOME_FOOTER_AD_SLOT" />
+
             <div className="text-center pb-4 pt-4">
               <p className="text-[10px] text-gray-400">© 2024 Bharada Gram Panchayat</p>
             </div>
@@ -264,6 +271,9 @@ const App: React.FC = () => {
                  </div>
               </div>
               
+              {/* Ad Slot in Search Results */}
+              <AdSenseSlot slotId="SEARCH_RESULT_AD_SLOT" />
+
               <div className="bg-white rounded-2xl shadow-sm border border-gray-200 px-4 pb-4 min-h-[500px]">
                  <BeneficiaryList data={filteredData} />
               </div>

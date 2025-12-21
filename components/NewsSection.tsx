@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import AdSenseSlot from './AdSenseSlot';
 
 interface Article {
   id: number;
@@ -10,53 +11,30 @@ interface Article {
   category: string;
 }
 
-const initialArticles: Article[] = [
+// Initial Sample Data to show if list is empty
+const SAMPLE_DATA: Article[] = [
   {
     id: 1,
-    title: "પી.એમ. કિસાન સન્માન નિધિ યોજના: 17મો હપ્તો ક્યારે આવશે?",
-    date: "12 May 2024",
-    category: "ખેડૂત સમાચાર",
+    title: "પ્રધાનમંત્રી કિસાન સન્માન નિધિ યોજના અપડેટ",
+    category: "ખેતીવાડી",
+    summary: "પી.એમ. કિસાન યોજનાનો 17મો હપ્તો ટૂંક સમયમાં જમા થશે.",
+    content: "ખેડૂત મિત્રો, પ્રધાનમંત્રી કિસાન સન્માન નિધિ યોજના હેઠળ 17મો હપ્તો ટૂંક સમયમાં જાહેર કરવામાં આવશે. જે ખેડૂતોનું eKYC બાકી હોય તેમણે તાત્કાલિક કરાવી લેવું. આધાર કાર્ડ સાથે બેંક એકાઉન્ટ લિંક હોવું ફરજિયાત છે.",
     image: "https://ui-avatars.com/api/?name=PM+Kisan&background=16a34a&color=fff&size=128",
-    summary: "પી.એમ. કિસાન યોજનાના 17મા હપ્તાની રાહ જોઈ રહેલા ખેડૂતો માટે મહત્વના સમાચાર. eKYC ફરજિયાત છે.",
-    content: `પ્રધાનમંત્રી કિસાન સન્માન નિધિ યોજના (PM-Kisan) હેઠળ દેશભરના કરોડો ખેડૂતોને વાર્ષિક 6000 રૂપિયાની આર્થિક સહાય આપવામાં આવે છે. આ રકમ 2000-2000 રૂપિયાના ત્રણ હપ્તામાં સીધી ખેડૂતોના બેંક ખાતામાં જમા થાય છે.
-
-**eKYC અપડેટ કરવું ફરજિયાત:**
-જો તમે હજુ સુધી તમારું eKYC નથી કરાવ્યું, તો તમારો હપ્તો અટકી શકે છે. eKYC તમે ઘરે બેઠા PM Kisan પોર્ટલ પર અથવા નજીકના CSC સેન્ટર પર જઈને કરાવી શકો છો.
-
-**સ્ટેટસ કેવી રીતે ચેક કરવું?**
-1. pmkisan.gov.in વેબસાઇટ પર જાઓ.
-2. 'Know Your Status' પર ક્લિક કરો.
-3. તમારો રજીસ્ટ્રેશન નંબર અને કેપ્ચા કોડ નાખો.
-4. તમારું સ્ટેટસ જોવા મળશે.
-
-આ યોજનાનો લાભ લેવા માટે જમીનનું આધાર સીડિંગ અને બેંક ખાતા સાથે આધાર લિંક હોવું પણ જરૂરી છે.`
-  },
-  {
-    id: 2,
-    title: "આયુષ્માન કાર્ડ: 5 લાખ સુધીની મફત સારવાર",
-    date: "10 May 2024",
-    category: "આરોગ્ય",
-    image: "https://ui-avatars.com/api/?name=Ayushman+Bharat&background=0891b2&color=fff&size=128",
-    summary: "આયુષ્માન ભારત યોજના હેઠળ હવે 70 વર્ષથી વધુ વયના તમામ વૃદ્ધોને આવરી લેવામાં આવ્યા છે.",
-    content: `આયુષ્માન ભારત પ્રધાનમંત્રી જન આરોગ્ય યોજના (AB-PMJAY) એ વિશ્વની સૌથી મોટી સ્વાસ્થ્ય વીમા યોજના છે. આ યોજના હેઠળ પાત્રતા ધરાવતા પરિવારોને વાર્ષિક 5 લાખ રૂપિયા સુધીનું સ્વાસ્થ્ય કવચ પૂરું પાડવામાં આવે છે.
-
-**કોને લાભ મળે?**
-- સામાજિક-આર્થિક વસ્તી ગણતરી (SECC) 2011 મુજબના લિસ્ટમાં નામ હોય તેવા પરિવારો.
-- રેશન કાર્ડ ધારકો (અંત્યોદય અને અમુક બીપીએલ).
-- તાજેતરમાં સરકારે જાહેરાત કરી છે કે 70 વર્ષથી વધુ ઉંમરના તમામ વરિષ્ઠ નાગરિકોને આ યોજનાનો લાભ મળશે, ભલે તેમની આવક ગમે તેટલી હોય.
-
-**લાભ ક્યાં મળે?**
-આ કાર્ડ દ્વારા તમે સરકારી હોસ્પિટલો તેમજ પેનલમાં જોડાયેલી ખાનગી હોસ્પિટલોમાં મફત સારવાર મેળવી શકો છો. કેન્સર, હૃદયરોગ, કિડની જેવી ગંભીર બીમારીઓનો પણ સમાવેશ થાય છે.`
+    date: new Date().toLocaleDateString('gu-IN', { day: 'numeric', month: 'long', year: 'numeric' })
   }
 ];
 
 const NewsSection: React.FC = () => {
-  // State for Articles
+  // State for Articles - Initialize from LocalStorage directly
   const [newsList, setNewsList] = useState<Article[]>(() => {
-    const saved = localStorage.getItem('newsArticles');
-    return saved ? JSON.parse(saved) : initialArticles;
+    try {
+      const saved = localStorage.getItem('local_news_data');
+      return saved ? JSON.parse(saved) : SAMPLE_DATA;
+    } catch (e) {
+      return SAMPLE_DATA;
+    }
   });
-
+  
   const [selectedId, setSelectedId] = useState<number | null>(null);
 
   // Admin State
@@ -72,9 +50,9 @@ const NewsSection: React.FC = () => {
   const [content, setContent] = useState('');
   const [imageUrl, setImageUrl] = useState('');
 
-  // Persist Data
+  // Save to LocalStorage whenever list changes
   useEffect(() => {
-    localStorage.setItem('newsArticles', JSON.stringify(newsList));
+    localStorage.setItem('local_news_data', JSON.stringify(newsList));
   }, [newsList]);
 
   const handleLogin = () => {
@@ -89,7 +67,8 @@ const NewsSection: React.FC = () => {
 
   const handleDelete = (id: number) => {
     if(window.confirm('આ સમાચાર ડિલીટ કરવા છે?')) {
-        setNewsList(newsList.filter(a => a.id !== id));
+        const updatedList = newsList.filter(a => a.id !== id);
+        setNewsList(updatedList);
     }
   };
 
@@ -98,28 +77,34 @@ const NewsSection: React.FC = () => {
     
     // Default image generator if empty
     const finalImage = imageUrl.trim() || `https://ui-avatars.com/api/?name=${encodeURIComponent(category)}&background=random&color=fff&size=128`;
+    const dateStr = new Date().toLocaleDateString('gu-IN', { day: 'numeric', month: 'long', year: 'numeric' });
 
     const newArticle: Article = {
-        id: Date.now(),
+        id: Date.now(), // Generate ID using timestamp
         title,
         category,
         summary,
         content,
         image: finalImage,
-        date: new Date().toLocaleDateString('gu-IN', { day: 'numeric', month: 'long', year: 'numeric' })
+        date: dateStr
     };
 
+    // Update State (LocalStorage will update via useEffect)
     setNewsList([newArticle, ...newsList]);
-    setShowForm(false);
     
-    // Reset Form
+    // Close & Reset
+    setShowForm(false);
+    resetForm();
+    
+    alert('સમાચાર પબ્લિશ થઈ ગયા છે! (Saved Locally)');
+  };
+
+  const resetForm = () => {
     setTitle('');
     setCategory('યોજના');
     setSummary('');
     setContent('');
     setImageUrl('');
-    
-    alert('સમાચાર પબ્લિશ થઈ ગયા છે!');
   };
 
   const toggleArticle = (id: number) => {
@@ -154,69 +139,82 @@ const NewsSection: React.FC = () => {
          )}
       </div>
 
+      {/* Ad Slot */}
+      <AdSenseSlot slotId="NEWS_HEADER_AD_SLOT" />
+
       {/* Articles List */}
-      <div className="grid gap-6">
-        {newsList.map((article) => (
-          <div key={article.id} className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-md transition-shadow relative">
-             
-             {/* Delete Button for Admin */}
-             {isAdmin && (
-                 <button 
-                    onClick={() => handleDelete(article.id)}
-                    className="absolute top-2 right-2 z-10 bg-red-100 text-red-600 p-2 rounded-full hover:bg-red-200"
-                 >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
-                 </button>
-             )}
-
-             <div className="flex flex-col sm:flex-row">
+      <div className="grid gap-6 mt-6">
+            {newsList.length === 0 && (
+                <div className="text-center py-8 bg-gray-50 rounded-xl border border-dashed border-gray-300">
+                    <p className="text-gray-400">હાલમાં કોઈ સમાચાર નથી.</p>
+                </div>
+            )}
+            {newsList.map((article, index) => (
+            <React.Fragment key={article.id}>
+                <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-md transition-shadow relative">
                 
-                {/* Image Section */}
-                <div className="sm:w-32 h-32 bg-gray-100 flex-shrink-0 relative">
-                   <img src={article.image} alt={article.title} className="w-full h-full object-cover" />
-                   <span className="absolute top-2 left-2 bg-black/60 text-white text-[10px] px-2 py-1 rounded-full backdrop-blur-sm">
-                      {article.category}
-                   </span>
+                {/* Delete Button for Admin */}
+                {isAdmin && (
+                    <button 
+                        onClick={() => handleDelete(article.id)}
+                        className="absolute top-2 right-2 z-10 bg-red-100 text-red-600 p-2 rounded-full hover:bg-red-200"
+                    >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                    </button>
+                )}
+
+                <div className="flex flex-col sm:flex-row">
+                    
+                    {/* Image Section */}
+                    <div className="sm:w-32 h-32 bg-gray-100 flex-shrink-0 relative">
+                        <img src={article.image} alt={article.title} className="w-full h-full object-cover" />
+                        <span className="absolute top-2 left-2 bg-black/60 text-white text-[10px] px-2 py-1 rounded-full backdrop-blur-sm">
+                            {article.category}
+                        </span>
+                    </div>
+
+                    {/* Content Section */}
+                    <div className="p-5 flex-1">
+                        <div className="flex justify-between items-start mb-2">
+                            <h3 className="text-lg font-bold text-gray-900 leading-snug hover:text-indigo-600 transition-colors cursor-pointer" onClick={() => toggleArticle(article.id)}>
+                            {article.title}
+                            </h3>
+                        </div>
+                        
+                        <p className="text-xs text-gray-400 mb-3 flex items-center gap-1">
+                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                            {article.date}
+                        </p>
+
+                        {/* Summary (Always Visible) */}
+                        <p className="text-sm text-gray-600 leading-relaxed mb-4">
+                            {article.summary}
+                        </p>
+
+                        {/* Expandable Full Content */}
+                        {selectedId === article.id && (
+                            <div className="mt-4 pt-4 border-t border-gray-100 animate-fade-in">
+                                <p className="text-sm text-gray-800 whitespace-pre-line leading-relaxed">
+                                    {article.content}
+                                </p>
+                            </div>
+                        )}
+
+                        <button 
+                            onClick={() => toggleArticle(article.id)}
+                            className="text-indigo-600 text-xs font-bold uppercase tracking-wide hover:underline mt-2 flex items-center gap-1"
+                        >
+                            {selectedId === article.id ? 'ઓછું વાંચો' : 'વધુ વાંચો'}
+                            <svg className={`w-4 h-4 transition-transform ${selectedId === article.id ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
+                        </button>
+                    </div>
                 </div>
-
-                {/* Content Section */}
-                <div className="p-5 flex-1">
-                   <div className="flex justify-between items-start mb-2">
-                      <h3 className="text-lg font-bold text-gray-900 leading-snug hover:text-indigo-600 transition-colors cursor-pointer" onClick={() => toggleArticle(article.id)}>
-                        {article.title}
-                      </h3>
-                   </div>
-                   
-                   <p className="text-xs text-gray-400 mb-3 flex items-center gap-1">
-                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
-                      {article.date}
-                   </p>
-
-                   {/* Summary (Always Visible) */}
-                   <p className="text-sm text-gray-600 leading-relaxed mb-4">
-                      {article.summary}
-                   </p>
-
-                   {/* Expandable Full Content */}
-                   {selectedId === article.id && (
-                      <div className="mt-4 pt-4 border-t border-gray-100 animate-fade-in">
-                          <p className="text-sm text-gray-800 whitespace-pre-line leading-relaxed">
-                              {article.content}
-                          </p>
-                      </div>
-                   )}
-
-                   <button 
-                      onClick={() => toggleArticle(article.id)}
-                      className="text-indigo-600 text-xs font-bold uppercase tracking-wide hover:underline mt-2 flex items-center gap-1"
-                   >
-                      {selectedId === article.id ? 'ઓછું વાંચો' : 'વધુ વાંચો'}
-                      <svg className={`w-4 h-4 transition-transform ${selectedId === article.id ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
-                   </button>
                 </div>
-             </div>
-          </div>
-        ))}
+                
+                {/* Insert Ad after the 2nd article */}
+                {index === 1 && <AdSenseSlot slotId="IN_FEED_AD_SLOT" />}
+            </React.Fragment>
+            ))}
       </div>
 
       {/* Admin Panel Toggle */}
@@ -309,7 +307,7 @@ const NewsSection: React.FC = () => {
                     </div>
 
                     <button type="submit" className="w-full bg-indigo-600 text-white py-3 rounded-xl font-bold shadow-lg hover:bg-indigo-700">
-                        પબ્લિશ કરો
+                        પબ્લિશ કરો (Save Locally)
                     </button>
                 </form>
             </div>
