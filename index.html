@@ -26,26 +26,6 @@
     <meta property="twitter:description" content="Check Krushi Sahay DBT Status, Water Supply Updates, and Market Rates for Bharada Gram Panchayat." />
     <meta property="twitter:image" content="https://ui-avatars.com/api/?name=Bharada+Panchayat&background=10b981&color=fff" />
     
-    <!-- OneSignal SDK -->
-    <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
-    <script>
-      window.OneSignalDeferred = window.OneSignalDeferred || [];
-      window.OneSignalDeferred.push(async function(OneSignal) {
-        // Prevent initialization errors on non-production domains if strict mode is on
-        const hostname = window.location.hostname;
-        const isAllowedDomain = hostname === 'www.jayuinfo.in' || hostname === 'jayuinfo.in' || hostname === 'localhost' || hostname === '127.0.0.1';
-        
-        if (isAllowedDomain) {
-          await OneSignal.init({
-            appId: "9db43331-0de9-424f-999d-0fa82d497d5f",
-            allowLocalhostAsSecureOrigin: true,
-          });
-        } else {
-          console.log('OneSignal init skipped: Domain not allowed.');
-        }
-      });
-    </script>
-    
     <!-- Tailwind CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Fonts: Inter for Numbers/English, Noto Sans Gujarati for Local Text -->

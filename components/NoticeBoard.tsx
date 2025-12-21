@@ -53,17 +53,6 @@ const NoticeBoard: React.FC = () => {
   const [newContact, setNewContact] = useState('');
   const [newMobile, setNewMobile] = useState('');
   
-  // Notification State
-  const [sendNotification, setSendNotification] = useState(false);
-  const [apiKey] = useState(() => localStorage.getItem('onesignal_api_key') || '');
-  const [appId] = useState(() => localStorage.getItem('onesignal_app_id') || '');
-
-  // Persist OneSignal Keys locally
-  useEffect(() => {
-    if(apiKey) localStorage.setItem('onesignal_api_key', apiKey);
-    if(appId) localStorage.setItem('onesignal_app_id', appId);
-  }, [apiKey, appId]);
-
   // Persist Notices locally AND Dispatch Event for Live Updates
   useEffect(() => {
     localStorage.setItem('villageNotices', JSON.stringify(notices));
@@ -120,11 +109,6 @@ const NoticeBoard: React.FC = () => {
             };
 
             setNotices(prev => [newNotice, ...prev]);
-
-            // Attempt Push Notification (Independent of Firebase)
-            if (sendNotification && apiKey && appId) {
-                triggerNotification(`નવી નોટિસ: ${newTitle}`, newDesc.substring(0, 50) + "...");
-            }
             alert("તમારી જાહેરાત સફળતાપૂર્વક લાઈવ થઈ ગઈ છે!");
         }
 
@@ -151,29 +135,6 @@ const NoticeBoard: React.FC = () => {
       if(window.confirm('શું તમે આ નોટિસ ડિલીટ કરવા માંગો છો?')) {
           setNotices(prev => prev.filter(n => n.id !== id));
       }
-  };
-
-  // Helper: Send Push Notification
-  const triggerNotification = async (title: string, message: string) => {
-    try {
-        const options = {
-            method: 'POST',
-            headers: {
-                accept: 'application/json',
-                'content-type': 'application/json',
-                Authorization: `Basic ${apiKey}`
-            },
-            body: JSON.stringify({
-                app_id: appId,
-                contents: { en: message },
-                headings: { en: title },
-                included_segments: ['All']
-            })
-        };
-        await fetch('https://onesignal.com/api/v1/notifications', options);
-    } catch (err) {
-        console.error("Notification failed", err);
-    }
   };
 
   // Helper: WhatsApp Share
@@ -397,22 +358,6 @@ const NoticeBoard: React.FC = () => {
                             </div>
                         </div>
                     </div>
-
-                    {/* Notification Toggle (Optional UI - Only show for new notices) */}
-                    {!editId && (
-                        <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl border border-gray-100">
-                            <input 
-                                type="checkbox" 
-                                id="notify"
-                                checked={sendNotification} 
-                                onChange={(e) => setSendNotification(e.target.checked)} 
-                                className="w-5 h-5 text-indigo-600 rounded border-gray-300 focus:ring-indigo-500 cursor-pointer"
-                            />
-                            <label htmlFor="notify" className="text-sm font-bold text-gray-700 cursor-pointer select-none">
-                                બધા ગામલોકોને નોટિફિકેશન મોકલો 🔔
-                            </label>
-                        </div>
-                    )}
 
                     {/* Action Button */}
                     <div className="pt-2">
