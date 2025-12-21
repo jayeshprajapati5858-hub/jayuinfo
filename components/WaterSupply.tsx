@@ -298,8 +298,20 @@ const WaterSupply: React.FC = () => {
                       <input type="text" placeholder="Line Name" value={newLineName} onChange={e => setNewLineName(e.target.value)} className="w-full text-black p-2 rounded text-sm"/>
                       <input type="text" placeholder="Area" value={newArea} onChange={e => setNewArea(e.target.value)} className="w-full text-black p-2 rounded text-sm"/>
                       <div className="flex gap-2">
-                        <input type="text" value={startTime} onChange={e => setStartTime(e.target.value)} className="w-full text-black p-2 rounded text-sm"/>
-                        <input type="text" value={endTime} onChange={e => setEndTime(e.target.value)} className="w-full text-black p-2 rounded text-sm"/>
+                        <div className="flex-1 flex gap-1">
+                            <input type="text" value={startTime} onChange={e => setStartTime(e.target.value)} className="w-full text-black p-2 rounded text-sm" placeholder="Start Time"/>
+                            <select value={startAmPm} onChange={e => setStartAmPm(e.target.value)} className="text-black p-2 rounded text-sm">
+                                <option value="AM">AM</option>
+                                <option value="PM">PM</option>
+                            </select>
+                        </div>
+                        <div className="flex-1 flex gap-1">
+                            <input type="text" value={endTime} onChange={e => setEndTime(e.target.value)} className="w-full text-black p-2 rounded text-sm" placeholder="End Time"/>
+                            <select value={endAmPm} onChange={e => setEndAmPm(e.target.value)} className="text-black p-2 rounded text-sm">
+                                <option value="AM">AM</option>
+                                <option value="PM">PM</option>
+                            </select>
+                        </div>
                       </div>
                       <select value={newStatus} onChange={e => setNewStatus(e.target.value as any)} className="w-full text-black p-2 rounded"><option value="Upcoming">Upcoming</option><option value="Running">Running</option></select>
                       <button type="submit" className="w-full bg-blue-600 py-2 rounded text-sm font-bold">Add Schedule</button>
