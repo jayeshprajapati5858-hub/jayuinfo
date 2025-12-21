@@ -46,6 +46,7 @@ const NoticeBoard: React.FC = () => {
   });
 
   // Form States
+  const [editId, setEditId] = useState<string | null>(null);
   const [newType, setNewType] = useState<'death' | 'event' | 'general'>('general');
   const [newTitle, setNewTitle] = useState('');
   const [newDesc, setNewDesc] = useState('');
@@ -68,7 +69,18 @@ const NoticeBoard: React.FC = () => {
     localStorage.setItem('villageNotices', JSON.stringify(notices));
   }, [notices]);
 
-  // Handle Form Submission
+  // Reset Form Helper
+  const resetForm = () => {
+      setShowForm(false);
+      setEditId(null);
+      setNewTitle('');
+      setNewDesc('');
+      setNewContact('');
+      setNewMobile('');
+      setNewType('general');
+  };
+
+  // Handle Form Submission (Create or Update)
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -78,39 +90,59 @@ const NoticeBoard: React.FC = () => {
     }
 
     try {
-        const newNotice: Notice = {
-            id: Date.now().toString(),
-            type: newType,
-            title: newTitle,
-            description: newDesc,
-            date: new Date().toLocaleDateString('gu-IN'),
-            contactPerson: newContact,
-            mobile: newMobile,
-            timestamp: Date.now(),
-        };
+        if (editId) {
+            // --- UPDATE EXISTING NOTICE ---
+            setNotices(prev => prev.map(notice => 
+                notice.id === editId ? {
+                    ...notice,
+                    type: newType,
+                    title: newTitle,
+                    description: newDesc,
+                    contactPerson: newContact,
+                    mobile: newMobile,
+                    timestamp: Date.now() // Update timestamp to bring it to top/fresh
+                } : notice
+            ));
+            alert("નોટિસ સફળતાપૂર્વક અપડેટ થઈ ગઈ છે!");
+        } else {
+            // --- CREATE NEW NOTICE ---
+            const newNotice: Notice = {
+                id: Date.now().toString(),
+                type: newType,
+                title: newTitle,
+                description: newDesc,
+                date: new Date().toLocaleDateString('gu-IN'),
+                contactPerson: newContact,
+                mobile: newMobile,
+                timestamp: Date.now(),
+            };
 
-        setNotices(prev => [newNotice, ...prev]);
+            setNotices(prev => [newNotice, ...prev]);
 
-        // Attempt Push Notification (Independent of Firebase)
-        if (sendNotification && apiKey && appId) {
-            triggerNotification(`નવી નોટિસ: ${newTitle}`, newDesc.substring(0, 50) + "...");
+            // Attempt Push Notification (Independent of Firebase)
+            if (sendNotification && apiKey && appId) {
+                triggerNotification(`નવી નોટિસ: ${newTitle}`, newDesc.substring(0, 50) + "...");
+            }
+            alert("તમારી જાહેરાત સફળતાપૂર્વક લાઈવ થઈ ગઈ છે!");
         }
 
         setActiveTab('all');
-        setShowForm(false);
-        
-        // Reset Form
-        setNewTitle('');
-        setNewDesc('');
-        setNewContact('');
-        setNewMobile('');
-
-        alert("તમારી જાહેરાત સફળતાપૂર્વક લાઈવ થઈ ગઈ છે!");
+        resetForm();
 
     } catch (e) {
-        console.error("Error adding notice: ", e);
+        console.error("Error processing notice: ", e);
         alert("ભૂલ આવી છે.");
     }
+  };
+
+  const handleEdit = (notice: Notice) => {
+      setEditId(notice.id);
+      setNewType(notice.type);
+      setNewTitle(notice.title);
+      setNewDesc(notice.description);
+      setNewContact(notice.contactPerson);
+      setNewMobile(notice.mobile);
+      setShowForm(true);
   };
 
   const handleDelete = (id: string) => {
@@ -162,7 +194,7 @@ const NoticeBoard: React.FC = () => {
            <p className="text-xs text-gray-500">ગામની તાજી ખબરો અને સૂચનાઓ</p>
         </div>
         <button 
-          onClick={() => setShowForm(true)}
+          onClick={() => { resetForm(); setShowForm(true); }}
           className="bg-indigo-600 text-white px-4 py-2 rounded-lg text-sm font-bold shadow-md hover:bg-indigo-700 transition-all flex items-center gap-2 active:scale-95"
         >
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
@@ -223,8 +255,15 @@ const NoticeBoard: React.FC = () => {
                             <span className="text-[10px] text-gray-400 font-mono bg-gray-50 px-1.5 py-0.5 rounded">
                                 {notice.date}
                             </span>
-                            <button onClick={() => handleDelete(notice.id)} className="text-red-400 hover:text-red-600" title="Delete">
-                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                            
+                            {/* Edit Button */}
+                            <button onClick={() => handleEdit(notice)} className="text-blue-400 hover:text-blue-600 p-1 rounded hover:bg-blue-50" title="Edit">
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg>
+                            </button>
+
+                            {/* Delete Button */}
+                            <button onClick={() => handleDelete(notice.id)} className="text-red-400 hover:text-red-600 p-1 rounded hover:bg-red-50" title="Delete">
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
                             </button>
                         </div>
                     </div>
@@ -268,9 +307,11 @@ const NoticeBoard: React.FC = () => {
                 
                 {/* Modal Header */}
                 <div className="p-4 border-b border-gray-100 flex justify-between items-center bg-gray-50 sticky top-0 z-10">
-                    <h3 className="font-bold text-lg text-gray-800">નવી જાહેરાત ઉમેરો</h3>
+                    <h3 className="font-bold text-lg text-gray-800">
+                        {editId ? 'નોટિસમાં સુધારો કરો' : 'નવી જાહેરાત ઉમેરો'}
+                    </h3>
                     <button 
-                        onClick={() => setShowForm(false)} 
+                        onClick={resetForm} 
                         className="bg-white text-gray-400 hover:text-red-500 p-1.5 rounded-full shadow-sm border border-gray-200 transition-colors"
                     >
                         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg>
@@ -355,25 +396,36 @@ const NoticeBoard: React.FC = () => {
                         </div>
                     </div>
 
-                    {/* Notification Toggle (Optional UI) */}
-                    <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl border border-gray-100">
-                        <input 
-                            type="checkbox" 
-                            id="notify"
-                            checked={sendNotification} 
-                            onChange={(e) => setSendNotification(e.target.checked)} 
-                            className="w-5 h-5 text-indigo-600 rounded border-gray-300 focus:ring-indigo-500 cursor-pointer"
-                        />
-                        <label htmlFor="notify" className="text-sm font-bold text-gray-700 cursor-pointer select-none">
-                            બધા ગામલોકોને નોટિફિકેશન મોકલો 🔔
-                        </label>
-                    </div>
+                    {/* Notification Toggle (Optional UI - Only show for new notices) */}
+                    {!editId && (
+                        <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl border border-gray-100">
+                            <input 
+                                type="checkbox" 
+                                id="notify"
+                                checked={sendNotification} 
+                                onChange={(e) => setSendNotification(e.target.checked)} 
+                                className="w-5 h-5 text-indigo-600 rounded border-gray-300 focus:ring-indigo-500 cursor-pointer"
+                            />
+                            <label htmlFor="notify" className="text-sm font-bold text-gray-700 cursor-pointer select-none">
+                                બધા ગામલોકોને નોટિફિકેશન મોકલો 🔔
+                            </label>
+                        </div>
+                    )}
 
                     {/* Action Button */}
                     <div className="pt-2">
                         <button type="submit" className="w-full bg-indigo-600 text-white py-3.5 rounded-xl font-bold shadow-lg shadow-indigo-200 hover:bg-indigo-700 transform active:scale-[0.98] transition-all flex items-center justify-center gap-2">
-                            <span>જાહેરાત પબ્લિશ કરો</span>
-                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 5l7 7-7 7M5 5l7 7-7 7"></path></svg>
+                            {editId ? (
+                                <>
+                                    <span>સુધારો સેવ કરો</span>
+                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path></svg>
+                                </>
+                            ) : (
+                                <>
+                                    <span>જાહેરાત પબ્લિશ કરો</span>
+                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 5l7 7-7 7M5 5l7 7-7 7"></path></svg>
+                                </>
+                            )}
                         </button>
                     </div>
                     
