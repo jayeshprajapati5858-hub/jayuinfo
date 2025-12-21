@@ -20,6 +20,7 @@ import VillageProfile from './components/VillageProfile';
 import AgriRental from './components/AgriRental';
 import GeneralComplaints from './components/GeneralComplaints';
 import StudentCorner from './components/StudentCorner';
+import BloodDonors from './components/BloodDonors';
 import { beneficiaryData } from './data/beneficiaries';
 
 // --- Phonetic Search Logic ---
@@ -49,15 +50,15 @@ const NoticeTicker = ({ notices }: { notices: any[] }) => {
   const displayData = notices && notices.length > 0 ? notices : defaultNotices;
 
   return (
-    <div className="bg-orange-500 overflow-hidden py-2 relative shadow-sm">
-       <div className="absolute left-0 top-0 bottom-0 w-8 bg-gradient-to-r from-orange-500 to-transparent z-10"></div>
-       <div className="absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-orange-500 to-transparent z-10"></div>
-       <div className="whitespace-nowrap animate-marquee flex gap-8">
+    <div className="bg-orange-600 overflow-hidden py-2 relative shadow-md">
+       <div className="absolute left-0 top-0 bottom-0 w-8 bg-gradient-to-r from-orange-600 to-transparent z-10"></div>
+       <div className="absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-orange-600 to-transparent z-10"></div>
+       <div className="whitespace-nowrap animate-marquee flex gap-12">
           {displayData.map((n, i) => (
-             <span key={i} className="text-white text-xs font-bold inline-flex items-center gap-2">
-               <span className="bg-white text-orange-600 text-[10px] px-1.5 rounded">NEW</span>
+             <span key={i} className="text-white text-sm font-bold inline-flex items-center gap-2">
+               <span className="bg-red-500 text-white text-[10px] px-2 py-0.5 rounded animate-pulse">LIVE</span>
                {n.title}
-               {n.contactPerson && <span className="font-normal opacity-90 text-[10px] ml-1">({n.contactPerson})</span>}
+               {n.contactPerson && <span className="font-normal opacity-90 text-xs ml-1">({n.contactPerson})</span>}
              </span>
           ))}
        </div>
@@ -65,7 +66,7 @@ const NoticeTicker = ({ notices }: { notices: any[] }) => {
   );
 };
 
-type ServiceType = 'market' | 'water' | 'health' | 'school' | 'notice' | 'schemes' | 'rojgar' | 'bus' | 'business' | 'profile' | 'agri' | 'complaint' | 'student';
+type ServiceType = 'market' | 'water' | 'health' | 'school' | 'notice' | 'schemes' | 'rojgar' | 'bus' | 'business' | 'profile' | 'agri' | 'complaint' | 'student' | 'blood';
 
 const App: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
@@ -77,29 +78,38 @@ const App: React.FC = () => {
   const [hasNewJobs, setHasNewJobs] = useState(false);
   const [tickerNotices, setTickerNotices] = useState<any[]>([]);
 
-  // Check for updates on mount and poll regularly
+  // Check for updates Logic
+  const checkUpdates = () => {
+      const oneDayMs = 24 * 60 * 60 * 1000;
+      const now = Date.now();
+
+      // Check Notices for Red Dot & Ticker
+      const notices = JSON.parse(localStorage.getItem('villageNotices') || '[]');
+      const activeNotices = notices.filter((n: any) => (now - (n.timestamp || 0)) < oneDayMs);
+      
+      setHasNewNotices(activeNotices.length > 0);
+      setTickerNotices(activeNotices);
+
+      // Check Jobs for Red Dot
+      const jobs = JSON.parse(localStorage.getItem('rojgarListings') || '[]');
+      const recentJob = jobs.some((j: any) => (now - (j.timestamp || 0)) < oneDayMs);
+      setHasNewJobs(recentJob);
+  };
+
+  // Check for updates on mount, poll, AND listen for instant events
   useEffect(() => {
-    const checkUpdates = () => {
-        const oneDayMs = 24 * 60 * 60 * 1000;
-        const now = Date.now();
-
-        // Check Notices for Red Dot & Ticker
-        const notices = JSON.parse(localStorage.getItem('villageNotices') || '[]');
-        const activeNotices = notices.filter((n: any) => (now - (n.timestamp || 0)) < oneDayMs);
-        
-        setHasNewNotices(activeNotices.length > 0);
-        setTickerNotices(activeNotices);
-
-        // Check Jobs for Red Dot
-        const jobs = JSON.parse(localStorage.getItem('rojgarListings') || '[]');
-        const recentJob = jobs.some((j: any) => (now - (j.timestamp || 0)) < oneDayMs);
-        setHasNewJobs(recentJob);
-    };
-    
     checkUpdates();
-    // Poll every 3 seconds to update ticker if a new notice is added
-    const interval = setInterval(checkUpdates, 3000);
-    return () => clearInterval(interval);
+    
+    // Poll every 5 seconds as fallback
+    const interval = setInterval(checkUpdates, 5000);
+
+    // Listen for custom event for INSTANT updates
+    window.addEventListener('noticeUpdate', checkUpdates);
+    
+    return () => {
+        clearInterval(interval);
+        window.removeEventListener('noticeUpdate', checkUpdates);
+    };
   }, [currentView]);
 
   const filteredData = useMemo(() => {
@@ -141,6 +151,7 @@ const App: React.FC = () => {
       { id: 'health', label: 'આરોગ્ય', color: 'bg-teal-50 text-teal-600', icon: <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"></path></svg> },
       { id: 'school', label: 'શાળા', color: 'bg-blue-50 text-blue-600', icon: <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path></svg> },
       { id: 'student', label: 'સ્ટુડન્ટ કોર્નર', color: 'bg-pink-50 text-pink-600', icon: <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M12 14l9-5-9-5-9 5 9 5z" /><path d="M12 14l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 14l9-5-9-5-9 5 9 5zm0 0l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14zm-4 6v-7.5l4-2.222" /></svg> },
+      { id: 'blood', label: 'રક્તદાતા', color: 'bg-rose-50 text-rose-600', icon: <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.384-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"></path></svg> },
       { id: 'profile', label: 'ગામ પરિચય', color: 'bg-rose-50 text-rose-600', icon: <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg> },
   ];
 
@@ -309,6 +320,7 @@ const App: React.FC = () => {
             {activeService === 'agri' && <AgriRental />}
             {activeService === 'complaint' && <GeneralComplaints />}
             {activeService === 'student' && <StudentCorner />}
+            {activeService === 'blood' && <BloodDonors />}
 
           </div>
         )}

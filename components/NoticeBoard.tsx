@@ -64,9 +64,11 @@ const NoticeBoard: React.FC = () => {
     if(appId) localStorage.setItem('onesignal_app_id', appId);
   }, [apiKey, appId]);
 
-  // Persist Notices locally
+  // Persist Notices locally AND Dispatch Event for Live Updates
   useEffect(() => {
     localStorage.setItem('villageNotices', JSON.stringify(notices));
+    // Dispatch event so App.tsx knows data changed immediately
+    window.dispatchEvent(new Event('noticeUpdate'));
   }, [notices]);
 
   // Reset Form Helper
@@ -147,7 +149,7 @@ const NoticeBoard: React.FC = () => {
 
   const handleDelete = (id: string) => {
       if(window.confirm('શું તમે આ નોટિસ ડિલીટ કરવા માંગો છો?')) {
-          setNotices(notices.filter(n => n.id !== id));
+          setNotices(prev => prev.filter(n => n.id !== id));
       }
   };
 
@@ -191,7 +193,7 @@ const NoticeBoard: React.FC = () => {
       <div className="flex justify-between items-center mb-6">
         <div>
            <h2 className="text-xl font-bold text-gray-800">ડિજિટલ નોટિસ બોર્ડ</h2>
-           <p className="text-xs text-gray-500">ગામની તાજી ખબરો અને સૂચનાઓ</p>
+           <p className="text-xs text-gray-500">ગામની તાજી ખબરો અને સૂચનાઓ (Live)</p>
         </div>
         <button 
           onClick={() => { resetForm(); setShowForm(true); }}
