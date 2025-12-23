@@ -71,12 +71,15 @@ const NewsSection: React.FC = () => {
 
       if (parsedNews.length > 0) {
         for (const item of parsedNews) {
+          // Defensive check: violation of not-null constraint protection
+          if (!item.title || !item.content) continue;
+
           // Check if similar title exists to avoid duplicates in rapid sync
           const existing = await pool.query('SELECT id FROM news WHERE title = $1 AND date = $2', [item.title, todayStr]);
           if (existing.rows.length === 0) {
             await pool.query(
               `INSERT INTO news (title, summary, content, category, date) VALUES ($1, $2, $3, $4, $5)`,
-              [item.title, item.summary, item.content, item.category, todayStr]
+              [item.title, item.summary || '', item.content, item.category || 'સમાચાર', todayStr]
             );
           }
         }

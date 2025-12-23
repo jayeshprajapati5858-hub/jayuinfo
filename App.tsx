@@ -86,25 +86,51 @@ const App: React.FC = () => {
               console.log("App Main Sync: Missing news for today. Triggering...");
               setIsSyncingNews(true);
               const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-              const prompt = `Write 8 authentic Gujarati news articles for ${todayStr}. Focus: Gujarat Govt Agriculture schemes, local Saurashtra weather, and PM-Kisan. Return JSON array.`;
+              const prompt = `Generate 8 authentic Gujarati news articles for ${todayStr}. Focus: Gujarat Govt Agriculture (i-Khedut) schemes, local Saurashtra weather, and PM-Kisan status. Ensure each article has title, summary, content and category.`;
               const aiRes = await ai.models.generateContent({
                   model: "gemini-3-flash-preview",
                   contents: prompt,
-                  config: { responseMimeType: "application/json" }
+                  config: { 
+                    responseMimeType: "application/json",
+                    responseSchema: {
+                      type: Type.ARRAY,
+                      items: {
+                        type: Type.OBJECT,
+                        properties: {
+                          title: { type: Type.STRING },
+                          summary: { type: Type.STRING },
+                          content: { type: Type.STRING },
+                          category: { type: Type.STRING }
+                        },
+                        required: ["title", "summary", "content", "category"]
+                      }
+                    }
+                  }
               });
+              
               const news = JSON.parse(aiRes.text || "[]");
               for (const item of news) {
-                  await pool.query(
-                      `INSERT INTO news (title, summary, content, category, date) VALUES ($1, $2, $3, $4, $5)`,
-                      [item.title, item.summary, item.content, item.category || 'સમાચાર', todayStr]
-                  );
+                  // Defensive check: Skip if critical fields are null to satisfy DB NOT NULL constraint
+                  if (!item.title || !item.content) {
+                    console.warn("Skipping invalid AI news item: missing title or content");
+                    continue;
+                  }
+
+                  // Duplication check
+                  const exists = await pool.query('SELECT id FROM news WHERE title = $1 AND date = $2', [item.title, todayStr]);
+                  if (exists.rows.length === 0) {
+                    await pool.query(
+                        `INSERT INTO news (title, summary, content, category, date) VALUES ($1, $2, $3, $4, $5)`,
+                        [item.title, item.summary || '', item.content, item.category || 'સમાચાર', todayStr]
+                    );
+                  }
               }
               // Refresh home news
               const newsRes = await pool.query('SELECT * FROM news ORDER BY id DESC LIMIT 3');
               setHomeNews(newsRes.rows);
           }
-      } catch (err) {
-          console.error("BG Sync Failed:", err);
+      } catch (err: any) {
+          console.error("BG Sync Failed:", err?.message || err);
       } finally {
           setIsSyncingNews(false);
       }
