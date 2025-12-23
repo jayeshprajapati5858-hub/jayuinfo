@@ -81,50 +81,67 @@ const App: React.FC = () => {
       if (isSyncingNews) return;
       const todayStr = new Date().toLocaleDateString('gu-IN');
       try {
-          const res = await pool.query('SELECT id FROM news WHERE date = $1 LIMIT 1', [todayStr]);
-          if (res.rows.length === 0) {
+          const res = await pool.query('SELECT id, image FROM news WHERE date = $1', [todayStr]);
+          
+          // Check if news needs to be generated or images need to be backfilled
+          const needsGeneration = res.rows.length === 0;
+          const needsImages = res.rows.some((row: any) => !row.image);
+
+          if (needsGeneration || needsImages) {
               setIsSyncingNews(true);
               const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
               
-              // 1. Generate News Content
-              const prompt = `Generate 5 high-quality, long-form Gujarati news articles for ${todayStr}. These are for a professional village portal to get AdSense approval. 
-              Focus: Gujarat Government Agriculture (i-Khedut), educational scholarship deadlines, weather alerts, and PM-Kisan status. 
-              Content must be original, helpful, and at least 300 words each. Return JSON array with title, summary, content, category.`;
-              
-              const aiRes = await ai.models.generateContent({
-                  model: "gemini-3-flash-preview",
-                  contents: prompt,
-                  config: { 
-                    responseMimeType: "application/json",
-                    responseSchema: {
-                      type: Type.ARRAY,
-                      items: {
-                        type: Type.OBJECT,
-                        properties: {
-                          title: { type: Type.STRING },
-                          summary: { type: Type.STRING },
-                          content: { type: Type.STRING },
-                          category: { type: Type.STRING }
-                        },
-                        required: ["title", "summary", "content", "category"]
-                      }
-                    }
-                  }
-              });
-              
-              const news = JSON.parse(aiRes.text || "[]");
-              for (const item of news) {
-                  if (!item.title || !item.content) continue;
+              let newsData = [];
 
+              if (needsGeneration) {
+                  // 1. Generate News Content if missing
+                  const prompt = `Generate 5 high-quality, long-form Gujarati news articles for ${todayStr}. These are for a professional village portal to get AdSense approval. 
+                  Focus: Gujarat Government Agriculture (i-Khedut), educational scholarship deadlines, weather alerts, and PM-Kisan status. 
+                  Content must be original, helpful, and at least 300 words each. Return JSON array with title, summary, content, category.`;
+                  
+                  const aiRes = await ai.models.generateContent({
+                      model: "gemini-3-flash-preview",
+                      contents: prompt,
+                      config: { 
+                        responseMimeType: "application/json",
+                        responseSchema: {
+                          type: Type.ARRAY,
+                          items: {
+                            type: Type.OBJECT,
+                            properties: {
+                              title: { type: Type.STRING },
+                              summary: { type: Type.STRING },
+                              content: { type: Type.STRING },
+                              category: { type: Type.STRING }
+                            },
+                            required: ["title", "summary", "content", "category"]
+                          }
+                        }
+                      }
+                  });
+                  newsData = JSON.parse(aiRes.text || "[]");
+              } else {
+                  // Fetch existing titles to regenerate images for
+                  const existingRes = await pool.query('SELECT id, title FROM news WHERE date = $1 AND (image IS NULL OR image = \'\')', [todayStr]);
+                  newsData = existingRes.rows;
+              }
+              
+              for (const item of newsData) {
+                  if (!item.title) continue;
+
+                  // 2. Generate News Image (Switched to gemini-2.5-flash-image to fix 403)
                   let imageUrl = null;
                   try {
                     const imgRes = await ai.models.generateContent({
                         model: 'gemini-2.5-flash-image',
-                        contents: { parts: [{ text: `A professional journalistic news image representing rural Gujarat/India for: ${item.title}` }] },
+                        contents: { 
+                            parts: [{ 
+                                text: `A professional, realistic news photograph related to: ${item.title}. The setting should be rural Gujarat, India. High resolution, 16:9 ratio. No text overlays.` 
+                            }] 
+                        },
                         config: { imageConfig: { aspectRatio: "16:9" } }
                     });
                     
-                    // Fixed TS18048 & TS2532: Added optional chaining and fallback
                     const parts = imgRes.candidates?.[0]?.content?.parts || [];
                     for (const p of parts) {
                         if (p.inlineData) { 
@@ -132,14 +149,22 @@ const App: React.FC = () => {
                           break; 
                         }
                     }
-                  } catch(e) { }
+                  } catch(e) { console.warn("Img Gen Fail", e); }
 
-                  const exists = await pool.query('SELECT id FROM news WHERE title = $1 AND date = $2', [item.title, todayStr]);
-                  if (exists.rows.length === 0) {
-                    await pool.query(
-                        `INSERT INTO news (title, summary, content, category, date, image) VALUES ($1, $2, $3, $4, $5, $6)`,
-                        [item.title, item.summary || '', item.content, item.category || 'સમાચાર', todayStr, imageUrl]
-                    );
+                  if (imageUrl) {
+                      // 3. Save or Update to DB
+                      if (needsGeneration) {
+                          const exists = await pool.query('SELECT id FROM news WHERE title = $1', [item.title]);
+                          if (exists.rows.length === 0) {
+                            await pool.query(
+                                `INSERT INTO news (title, summary, content, category, date, image) VALUES ($1, $2, $3, $4, $5, $6)`,
+                                [item.title, item.summary || '', item.content, item.category || 'સમાચાર', todayStr, imageUrl]
+                            );
+                          }
+                      } else if (item.id) {
+                          // Update existing record
+                          await pool.query('UPDATE news SET image = $1 WHERE id = $2', [imageUrl, item.id]);
+                      }
                   }
               }
               const newsRes = await pool.query('SELECT * FROM news ORDER BY id DESC LIMIT 3');

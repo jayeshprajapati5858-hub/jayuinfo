@@ -27,19 +27,23 @@ const NewsSection: React.FC = () => {
   const generateImageForNews = async (title: string): Promise<string | null> => {
     try {
       const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+      // Switched to gemini-2.5-flash-image to fix 403 PERMISSION_DENIED
       const response = await ai.models.generateContent({
         model: 'gemini-2.5-flash-image',
         contents: {
           parts: [
             {
-              text: `High-quality, realistic journalistic photography representing: ${title}. Showing Gujarat farmers, modern technology, or government schemes. Authentic Indian rural setting.`,
+              text: `A realistic, high-quality news photograph for an Indian Gujarati news article titled: "${title}". The image should be journalistic, authentic, and related to agriculture, village life, or government schemes in Gujarat. Do not include text in the image.`,
             },
           ],
         },
-        config: { imageConfig: { aspectRatio: "16:9" } },
+        config: { 
+            imageConfig: { 
+                aspectRatio: "16:9"
+            } 
+        },
       });
 
-      // Fixed TS18048 & TS2532: Added optional chaining
       const parts = response.candidates?.[0]?.content?.parts || [];
       for (const part of parts) {
         if (part.inlineData) {
@@ -47,7 +51,10 @@ const NewsSection: React.FC = () => {
         }
       }
       return null;
-    } catch (err) { return null; }
+    } catch (err) { 
+        console.error("Image Gen Error:", err);
+        return null; 
+    }
   };
 
   const autoSyncDailyNews = useCallback(async () => {
@@ -56,9 +63,10 @@ const NewsSection: React.FC = () => {
     try {
       const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
       
+      // 1. Generate Text Content
       const prompt = `Generate 5 professional Gujarati news articles for ${todayStr}. 
       Articles must be original, helpful for farmers, and formatted as long-form blog posts (300+ words).
-      Topics: 1. Latest APMC Market trends. 2. Educational help for students. 3. New Agricultural subsidies. 4. Weather forecast for Saurashtra.
+      Topics: 1. Latest APMC Market trends in Saurashtra. 2. New Subsidy schemes for farmers (i-Khedut). 3. Weather forecast. 4. General village development news.
       Return as a valid JSON array of objects with title, summary, content, and category.`;
 
       const response = await ai.models.generateContent({
@@ -87,15 +95,27 @@ const NewsSection: React.FC = () => {
       if (parsedNews.length > 0) {
         for (const item of parsedNews) {
           if (!item.title || !item.content) continue;
-          const existing = await pool.query('SELECT id FROM news WHERE title = $1 AND date = $2', [item.title, todayStr]);
+          
+          // Check if article exists
+          const existing = await pool.query('SELECT id, image FROM news WHERE title = $1 AND date = $2', [item.title, todayStr]);
+          
           if (existing.rows.length === 0) {
+            // New Article: Generate Image and Insert
             const imageUrl = await generateImageForNews(item.title);
             await pool.query(
               `INSERT INTO news (title, summary, content, category, date, image) VALUES ($1, $2, $3, $4, $5, $6)`,
               [item.title, item.summary || '', item.content, item.category || 'સમાચાર', todayStr, imageUrl]
             );
+          } else if (!existing.rows[0].image) {
+            // Existing Article but Missing Image: Generate Image and Update
+            console.log("Updating missing image for:", item.title);
+            const imageUrl = await generateImageForNews(item.title);
+            if (imageUrl) {
+                await pool.query(`UPDATE news SET image = $1 WHERE id = $2`, [imageUrl, existing.rows[0].id]);
+            }
           }
         }
+        // Refresh list
         const refresh = await pool.query('SELECT * FROM news ORDER BY id DESC LIMIT 20');
         setNewsList(refresh.rows);
       }
@@ -109,35 +129,71 @@ const NewsSection: React.FC = () => {
   const fetchNews = useCallback(async () => {
     setLoading(true);
     try {
+      // Create table if not exists
+      await pool.query(`
+        CREATE TABLE IF NOT EXISTS news (
+          id SERIAL PRIMARY KEY,
+          title TEXT NOT NULL,
+          summary TEXT,
+          content TEXT,
+          category TEXT,
+          date TEXT,
+          image TEXT,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+      `);
+
       const result = await pool.query('SELECT * FROM news ORDER BY id DESC LIMIT 20');
       const data = result.rows;
       setNewsList(data);
-      const hasTodayNews = data.some((a: any) => a.date === todayStr);
-      if (!hasTodayNews) { autoSyncDailyNews(); }
-    } catch (err) { } finally { setLoading(false); }
+      
+      // If no news for today, or if today's news has no images, trigger sync
+      const todaysNews = data.filter((a: any) => a.date === todayStr);
+      const missingImages = todaysNews.some((a: any) => !a.image);
+      
+      if (todaysNews.length === 0 || missingImages) { 
+          autoSyncDailyNews(); 
+      }
+    } catch (err) { 
+        console.error("Fetch Error:", err);
+    } finally { 
+        setLoading(false); 
+    }
   }, [autoSyncDailyNews, todayStr]);
 
   useEffect(() => { fetchNews(); }, [fetchNews]);
 
   return (
     <div className="w-full max-w-4xl mx-auto px-4 py-6 animate-fade-in pb-20">
-      <div className="mb-10 text-center">
+      <div className="mb-10 text-center relative">
           <h2 className="text-3xl font-black text-gray-900 mb-2">તાજા સમાચાર અને લેખ</h2>
           <p className="text-xs text-emerald-600 font-black uppercase tracking-[0.2em]">Latest Updates: {todayStr}</p>
+          {syncing && (
+             <div className="absolute top-0 right-0">
+                <span className="flex h-3 w-3 relative">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
+                </span>
+             </div>
+          )}
       </div>
 
       <div className="space-y-12">
         {loading && newsList.length === 0 ? (
-          <div className="text-center py-20 opacity-30">માહિતી ચેક થઈ રહી છે...</div>
+          <div className="text-center py-20 opacity-30 flex flex-col items-center gap-4">
+             <div className="w-8 h-8 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin"></div>
+             <p>માહિતી ચેક થઈ રહી છે...</p>
+          </div>
         ) : (
           newsList.map((article, idx) => (
             <div key={article.id || idx} className="bg-white rounded-[3rem] shadow-sm border border-gray-100 overflow-hidden group hover:shadow-2xl transition-all duration-500">
-              <div className="aspect-[16/8] w-full bg-gray-50 relative overflow-hidden">
+              <div className="aspect-[16/9] w-full bg-gray-100 relative overflow-hidden">
                 {article.image ? (
                   <img src={article.image} alt={article.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-1000" />
                 ) : (
-                  <div className="w-full h-full flex items-center justify-center text-gray-200">
-                    <svg className="w-16 h-16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                  <div className="w-full h-full flex flex-col items-center justify-center text-gray-300 bg-gray-50">
+                    <svg className="w-16 h-16 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                    <span className="text-[10px] font-bold uppercase tracking-widest">Image Loading...</span>
                   </div>
                 )}
                 <div className="absolute top-6 left-6">
@@ -185,7 +241,7 @@ const NewsSection: React.FC = () => {
                         setNewsList(newsList.filter(n => n.id !== article.id));
                       }
                     }} className="text-red-300 hover:text-red-500 transition-colors">
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
                     </button>
                   )}
                 </div>
