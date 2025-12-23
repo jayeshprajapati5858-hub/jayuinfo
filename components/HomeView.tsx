@@ -2,6 +2,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import WeatherWidget from './WeatherWidget';
+import AdSenseSlot from './AdSenseSlot';
 
 interface HomeViewProps {
   homeNews: any[];
@@ -22,7 +23,8 @@ const HomeView: React.FC<HomeViewProps> = ({ homeNews, featuredNotice, hasNewNot
   ];
 
   return (
-    <div className="animate-fade-in space-y-8">
+    <div className="animate-fade-in space-y-8 pb-20">
+      {/* Header Cards */}
       <div className="flex flex-col sm:flex-row gap-4 items-stretch">
           <div className="flex-1 bg-white rounded-3xl p-6 shadow-sm border border-gray-100 flex flex-col justify-between relative overflow-hidden min-h-[140px]">
               <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-50 rounded-full blur-3xl -mr-16 -mt-16"></div>
@@ -37,12 +39,11 @@ const HomeView: React.FC<HomeViewProps> = ({ homeNews, featuredNotice, hasNewNot
           <div className="sm:w-1/3"><WeatherWidget /></div>
       </div>
 
-      {/* AdSense Space Placeholder */}
-      <div className="bg-gray-100 border-2 border-dashed border-gray-200 h-24 rounded-2xl flex items-center justify-center">
-          <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">Advertisement Space</p>
-      </div>
+      {/* Top Ad Unit */}
+      <AdSenseSlot slot="1234567890" format="rectangle" />
 
-      <Link to="/search" className="block bg-emerald-600 rounded-[2rem] p-6 shadow-xl shadow-emerald-200/50 cursor-pointer transform active:scale-[0.98] transition-all group relative overflow-hidden">
+      {/* Main Action Banner */}
+      <Link to="/search" className="block bg-emerald-600 rounded-[2.5rem] p-7 shadow-2xl shadow-emerald-200/50 cursor-pointer transform active:scale-[0.98] transition-all group relative overflow-hidden">
           <div className="absolute top-0 right-0 w-48 h-48 bg-white/10 rounded-full blur-3xl -mr-16 -mt-16 group-hover:scale-110 transition-transform duration-700"></div>
           <div className="flex items-center gap-6 relative z-10">
               <div className="bg-white/15 text-white p-4 rounded-2xl backdrop-blur-md border border-white/20 shadow-inner">
@@ -50,11 +51,12 @@ const HomeView: React.FC<HomeViewProps> = ({ homeNews, featuredNotice, hasNewNot
               </div>
               <div className="flex-1">
                   <h3 className="text-white font-black text-lg">સરકારી સહાયની યાદી ૨૦૨૪</h3>
-                  <p className="text-emerald-50 text-xs mt-1 font-bold opacity-80">કૃષિ સહાય પેકેજમાં તમારું નામ છે કે નહીં તે તપાસો...</p>
+                  <p className="text-emerald-50 text-xs mt-1 font-bold opacity-80 uppercase tracking-wider">નામ શોધો અને સ્ટેટસ તપાસો</p>
               </div>
           </div>
       </Link>
 
+      {/* Services Grid */}
       <div>
           <div className="flex items-center justify-between px-1 mb-5">
               <h3 className="text-xs font-black text-gray-400 uppercase tracking-[0.2em] flex items-center gap-2">
@@ -64,8 +66,8 @@ const HomeView: React.FC<HomeViewProps> = ({ homeNews, featuredNotice, hasNewNot
           </div>
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
               {servicesList.map((service) => (
-                  <Link key={service.id} to={`/service/${service.id}`} className={`group p-5 rounded-[2rem] border border-gray-100 shadow-sm flex flex-col items-center gap-4 active:scale-95 transition-all relative ${service.id === 'marketplace' ? 'bg-amber-600 text-white shadow-lg shadow-amber-200' : 'bg-white hover:border-gray-300'}`}>
-                      <div className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-transform group-hover:scale-110 ${service.id === 'marketplace' ? 'bg-white/20 text-white' : `${service.color} text-white shadow-lg shadow-gray-200`}`}>
+                  <Link key={service.id} to={`/service/${service.id}`} className={`group p-5 rounded-[2.5rem] border border-gray-100 shadow-sm flex flex-col items-center gap-4 active:scale-95 transition-all relative ${service.id === 'marketplace' ? 'bg-amber-600 text-white shadow-xl shadow-amber-100' : 'bg-white hover:border-gray-300 hover:shadow-lg'}`}>
+                      <div className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-transform group-hover:scale-110 ${service.id === 'marketplace' ? 'bg-white/20 text-white' : `${service.color} text-white shadow-lg shadow-gray-100`}`}>
                           {service.icon}
                       </div>
                       <span className={`text-[10px] font-black uppercase tracking-wider ${service.id === 'marketplace' ? 'text-white' : 'text-gray-700'}`}>{service.label}</span>
@@ -74,6 +76,10 @@ const HomeView: React.FC<HomeViewProps> = ({ homeNews, featuredNotice, hasNewNot
           </div>
       </div>
 
+      {/* Middle Ad Unit */}
+      <AdSenseSlot slot="0987654321" format="fluid" />
+
+      {/* News & Notices Section */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="space-y-4">
               <div className="flex items-center justify-between px-1">
@@ -82,16 +88,16 @@ const HomeView: React.FC<HomeViewProps> = ({ homeNews, featuredNotice, hasNewNot
               </div>
               <div className="space-y-3">
                   {homeNews.length === 0 ? (
-                      <div className="bg-white border border-dashed border-gray-200 rounded-2xl p-6 text-center text-xs text-gray-400 font-bold">
-                          {hasNewNotices ? "ડેટા અપડેટ થઇ રહ્યો છે..." : "કોઈ સમાચાર નથી અથવા ડેટાબેઝ લિમિટ."}
+                      <div className="bg-white border border-dashed border-gray-200 rounded-3xl p-6 text-center text-xs text-gray-400 font-bold">
+                          {hasNewNotices ? "ડેટા અપડેટ થઇ રહ્યો છે..." : "કોઈ સમાચાર નથી."}
                       </div>
                   ) : homeNews.map((article: any, index) => (
                       <Link key={article.id} to="/service/news" className="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow cursor-pointer overflow-hidden flex items-center gap-4 block">
-                          {article.image ? (
-                              <img src={article.image} className="w-12 h-12 rounded-lg object-cover shrink-0" />
-                          ) : (
-                              <img src={fallbackImages[index % fallbackImages.length]} className="w-12 h-12 rounded-lg object-cover shrink-0 opacity-80" />
-                          )}
+                          <img 
+                            src={article.image || fallbackImages[index % fallbackImages.length]} 
+                            className="w-12 h-12 rounded-xl object-cover shrink-0 bg-gray-100" 
+                            onError={(e) => (e.currentTarget.src = fallbackImages[0])}
+                          />
                           <div>
                               <span className="text-[9px] font-black text-indigo-600 uppercase mb-0.5 block tracking-wider">{article.category}</span>
                               <h4 className="text-xs font-black text-gray-900 leading-tight line-clamp-2">{article.title}</h4>
@@ -106,36 +112,42 @@ const HomeView: React.FC<HomeViewProps> = ({ homeNews, featuredNotice, hasNewNot
                   <h3 className="text-xs font-black text-gray-400 uppercase tracking-[0.2em]">મહત્વની નોટિસ</h3>
               </div>
               {featuredNotice ? (
-                  <Link to="/service/notice" className="block bg-orange-50 border border-orange-100 rounded-[2rem] p-6 relative cursor-pointer hover:bg-orange-100 transition-colors h-full">
-                      <span className="bg-orange-600 text-white text-[9px] font-black px-2.5 py-1 rounded-full uppercase tracking-tighter mb-4 inline-block">વરન્ટ / નોટિસ</span>
-                      <h4 className="text-sm font-black text-gray-900 leading-tight mb-2">{featuredNotice.title}</h4>
-                      <p className="text-[11px] text-gray-500 line-clamp-3 font-medium">{featuredNotice.description}</p>
+                  <Link to="/service/notice" className="block bg-orange-50 border border-orange-100 rounded-[2.5rem] p-7 relative cursor-pointer hover:bg-orange-100 transition-colors h-full flex flex-col group">
+                      <div className="flex justify-between items-center mb-4">
+                        <span className="bg-orange-600 text-white text-[9px] font-black px-3 py-1 rounded-full uppercase tracking-tighter shadow-lg shadow-orange-200">જાહેરાત / નોટિસ</span>
+                        <span className="text-[10px] text-orange-400 font-bold">{featuredNotice.date_str}</span>
+                      </div>
+                      <h4 className="text-sm font-black text-gray-900 leading-tight mb-2 group-hover:text-orange-700 transition-colors">{featuredNotice.title}</h4>
+                      <p className="text-[11px] text-gray-600 line-clamp-3 font-medium leading-relaxed">{featuredNotice.description}</p>
+                      <div className="mt-auto pt-4 text-orange-600 text-[10px] font-black uppercase tracking-widest">વધુ વાંચો →</div>
                   </Link>
               ) : (
-                  <div className="bg-white border border-dashed border-gray-200 rounded-[2rem] p-6 text-center h-[140px] flex items-center justify-center">
+                  <div className="bg-white border border-dashed border-gray-200 rounded-[2.5rem] p-6 text-center h-[160px] flex flex-col items-center justify-center gap-3">
+                      <div className="p-3 bg-gray-50 rounded-full text-gray-300">
+                        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" strokeWidth="2"/></svg>
+                      </div>
                       <p className="text-xs text-gray-400 font-bold italic">હાલ કોઈ નવી નોટિસ નથી.</p>
                   </div>
               )}
           </div>
       </div>
 
-      {/* AdSense Bottom Unit Placeholder */}
-      <div className="bg-gray-100 border-2 border-dashed border-gray-200 h-40 rounded-3xl flex items-center justify-center">
-          <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">In-Feed Native Ad Unit</p>
-      </div>
+      {/* Bottom Sticky Ad Unit */}
+      <AdSenseSlot slot="1122334455" format="rectangle" />
 
-      <div className="text-center pt-8 opacity-20 flex flex-col items-center">
-        <div className="w-10 h-1 h-0.5 bg-gray-400 rounded-full mb-4"></div>
-        <p className="text-[9px] font-black text-gray-500 uppercase tracking-[0.4em]">Bharada Digital Gram Panchayat Portal • 2024</p>
-      </div>
-      
-      {/* Extended Footer Links for AdSense Approval */}
-      <div className="pt-10 border-t border-gray-100">
-          <div className="grid grid-cols-2 gap-4">
-            <Link to="/about" className="text-left p-4 bg-white rounded-2xl border border-gray-50 shadow-sm"><span className="block text-[8px] font-black text-gray-400 uppercase mb-1">More</span><span className="text-xs font-bold">About Us (અમારા વિશે)</span></Link>
-            <Link to="/contact" className="text-left p-4 bg-white rounded-2xl border border-gray-50 shadow-sm"><span className="block text-[8px] font-black text-gray-400 uppercase mb-1">Help</span><span className="text-xs font-bold">Contact (સંપર્ક)</span></Link>
-            <Link to="/privacy" className="text-left p-4 bg-white rounded-2xl border border-gray-50 shadow-sm"><span className="block text-[8px] font-black text-gray-400 uppercase mb-1">Legal</span><span className="text-xs font-bold">Privacy Policy</span></Link>
-            <Link to="/terms" className="text-left p-4 bg-white rounded-2xl border border-gray-50 shadow-sm"><span className="block text-[8px] font-black text-gray-400 uppercase mb-1">Policy</span><span className="text-xs font-bold">Terms & Conditions</span></Link>
+      {/* Professional Footer */}
+      <div className="pt-10 border-t border-gray-100 pb-10">
+          <div className="grid grid-cols-2 gap-4 mb-8">
+            <Link to="/about" className="text-left p-5 bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-all"><span className="block text-[8px] font-black text-gray-400 uppercase mb-1">Explore</span><span className="text-xs font-bold">About Us (અમારા વિશે)</span></Link>
+            <Link to="/contact" className="text-left p-5 bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-all"><span className="block text-[8px] font-black text-gray-400 uppercase mb-1">Support</span><span className="text-xs font-bold">Contact (સંપર્ક)</span></Link>
+            <Link to="/privacy" className="text-left p-5 bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-all"><span className="block text-[8px] font-black text-gray-400 uppercase mb-1">Legal</span><span className="text-xs font-bold">Privacy Policy</span></Link>
+            <Link to="/terms" className="text-left p-5 bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-all"><span className="block text-[8px] font-black text-gray-400 uppercase mb-1">Usage</span><span className="text-xs font-bold">Terms & Conditions</span></Link>
+          </div>
+          
+          <div className="text-center opacity-40">
+            <div className="w-12 h-1 bg-gray-300 rounded-full mx-auto mb-6"></div>
+            <p className="text-[9px] font-black text-gray-500 uppercase tracking-[0.4em]">BHARADA DIGITAL PORTAL • © 2024</p>
+            <p className="text-[8px] text-gray-400 mt-2">Designed & Maintained for Social Progress</p>
           </div>
       </div>
     </div>
