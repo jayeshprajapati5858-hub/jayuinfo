@@ -12,6 +12,7 @@ interface Article {
   content: string;
   image: string;
   date: string;
+  created_at?: string;
 }
 
 const NewsSection: React.FC = () => {
@@ -32,29 +33,53 @@ const NewsSection: React.FC = () => {
       setLoading(true);
       const res = await pool.query('SELECT * FROM news ORDER BY id DESC LIMIT 30');
       setNews(res.rows);
+      return res.rows;
     } catch (err) {
       console.warn("Database interaction restricted or offline.");
+      return [];
     } finally {
       setLoading(false);
     }
   };
 
+  // Logic to check if 24 hours have passed and sync news
+  const checkAndAutoSync = async (currentNews: Article[]) => {
+    if (isSyncing) return;
+
+    let shouldSync = false;
+    if (currentNews.length === 0) {
+      shouldSync = true;
+    } else {
+      const latestNews = currentNews[0];
+      const lastUpdate = latestNews.created_at ? new Date(latestNews.created_at).getTime() : 0;
+      const twentyFourHours = 24 * 60 * 60 * 1000;
+      
+      if (Date.now() - lastUpdate > twentyFourHours) {
+        shouldSync = true;
+      }
+    }
+
+    if (shouldSync) {
+      console.log("24 hours passed. Triggering automatic news update via Gemini AI...");
+      generateAINews(true); // silent sync
+    }
+  };
+
   useEffect(() => {
-    fetchNews();
+    const init = async () => {
+      const data = await fetchNews();
+      checkAndAutoSync(data);
+    };
+    init();
   }, []);
 
   // --- Gemini AI News Generation ---
-  const generateAINews = async () => {
+  const generateAINews = async (isSilent = false) => {
     const apiKey = process.env.API_KEY;
+    if (!apiKey) return;
     
-    if (!apiKey) {
-      // For models like Flash, we expect the platform to provide the key via process.env
-      // If missing, we prompt the user to ensure they are logged in or have access
-      alert("AI સેવા માટે કી ઉપલબ્ધ નથી. કૃપા કરીને સેટિંગ્સ તપાસો.");
-      return;
-    }
+    if (!isSilent) setIsSyncing(true);
     
-    setIsSyncing(true);
     try {
       const ai = new GoogleGenAI({ apiKey });
       const response = await ai.models.generateContent({
@@ -85,11 +110,10 @@ const NewsSection: React.FC = () => {
              );
           }
           fetchNews();
-          alert("Gemini AI દ્વારા તાજા સમાચાર અપડેટ કરવામાં આવ્યા છે!");
+          if (!isSilent) alert("Gemini AI દ્વારા લેટેસ્ટ સમાચાર અપડેટ કરવામાં આવ્યા છે!");
       }
     } catch (err: any) {
-      console.error("AI Error:", err);
-      alert("AI સમાચાર મેળવવામાં તકલીફ પડી રહી છે. થોડીવાર પછી ફરી પ્રયત્ન કરો.");
+      console.error("AI Auto-Sync Error:", err);
     } finally {
       setIsSyncing(false);
     }
@@ -107,31 +131,31 @@ const NewsSection: React.FC = () => {
         <div>
            <div className="flex items-center gap-2 mb-2">
              <span className="w-3 h-3 bg-red-600 rounded-full animate-pulse shadow-[0_0_10px_rgba(220,38,38,0.5)]"></span>
-             <p className="text-[11px] font-black tracking-widest text-red-600 uppercase">Live Gemini AI Updates</p>
+             <p className="text-[11px] font-black tracking-widest text-red-600 uppercase">
+               {isSyncing ? 'AI Updating News...' : 'Automatic Gemini AI Feed'}
+             </p>
            </div>
            <h2 className="text-4xl font-black text-gray-900 leading-none tracking-tight">ગ્રામ સમાચાર</h2>
-           <p className="text-sm text-gray-500 font-bold mt-3 max-w-md">Gemini AI દ્વારા દરરોજ મેળવો ખેતીવાડી અને યોજનાઓની લેટેસ્ટ માહિતી ગુજરાતીમાં.</p>
+           <p className="text-sm text-gray-500 font-bold mt-3 max-w-md">Gemini AI દર ૨૪ કલાકે આપમેળે ખેતીવાડી અને યોજનાઓની માહિતી અપડેટ કરે છે.</p>
         </div>
 
-        <button 
-           onClick={generateAINews}
-           disabled={isSyncing}
-           className={`flex items-center gap-3 px-8 py-4 rounded-2xl text-xs font-black uppercase tracking-widest transition-all shadow-2xl ${
-             isSyncing ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'bg-indigo-600 text-white shadow-indigo-200 hover:bg-indigo-700 active:scale-95'
-           }`}
-        >
-           {isSyncing ? (
-             <>
-               <svg className="animate-spin h-5 w-5 text-gray-400" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
-               AI સમાચાર શોધી રહ્યું છે...
-             </>
-           ) : (
-             <>
-               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
-               નવા સમાચાર અપડેટ કરો
-             </>
-           )}
-        </button>
+        <div className="flex items-center gap-3">
+            {isSyncing && (
+                <div className="flex items-center gap-2 bg-indigo-50 px-4 py-2 rounded-xl border border-indigo-100">
+                    <div className="w-4 h-4 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
+                    <span className="text-[10px] font-black text-indigo-600 uppercase">AI Syncing...</span>
+                </div>
+            )}
+            <button 
+               onClick={() => generateAINews(false)}
+               disabled={isSyncing}
+               className={`flex items-center gap-3 px-8 py-4 rounded-2xl text-xs font-black uppercase tracking-widest transition-all shadow-2xl ${
+                 isSyncing ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'bg-white text-gray-900 border-2 border-gray-900 hover:bg-gray-900 hover:text-white active:scale-95'
+               }`}
+            >
+               મેન્યુઅલ અપડેટ
+            </button>
+        </div>
       </div>
 
       <AdSenseSlot slot="8877665544" format="rectangle" />
@@ -154,7 +178,7 @@ const NewsSection: React.FC = () => {
       </div>
 
       {/* News Feed */}
-      {loading ? (
+      {loading && news.length === 0 ? (
           <div className="grid md:grid-cols-2 gap-8">
               {[1,2,3,4].map(i => (
                   <div key={i} className="animate-pulse flex flex-col p-8 bg-white rounded-[2.5rem] border border-gray-50 shadow-sm">
@@ -168,10 +192,7 @@ const NewsSection: React.FC = () => {
           <div className="grid md:grid-cols-2 gap-10">
               {filteredNews.length === 0 ? (
                   <div className="col-span-full text-center py-32 bg-gray-50 rounded-[3rem] border-2 border-dashed border-gray-200 flex flex-col items-center gap-6">
-                      <div className="w-24 h-24 bg-white rounded-[2rem] flex items-center justify-center text-gray-200 shadow-inner">
-                        <svg className="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z" strokeWidth="2"/></svg>
-                      </div>
-                      <p className="text-gray-400 font-black uppercase tracking-widest text-sm">હાલ કોઈ સમાચાર નથી</p>
+                      <p className="text-gray-400 font-black uppercase tracking-widest text-sm">માહિતી લોડ થઈ રહી છે...</p>
                   </div>
               ) : (
                   filteredNews.map((article, idx) => (
@@ -196,17 +217,13 @@ const NewsSection: React.FC = () => {
                                       {article.category}
                                   </span>
                               </div>
-                              <div className="absolute bottom-0 left-0 right-0 h-40 bg-gradient-to-t from-black/60 to-transparent"></div>
                           </div>
 
                           <div className="p-10 flex flex-col flex-1">
                               <div className="flex items-center gap-4 mb-6">
                                   <span className="text-[10px] text-gray-400 font-black uppercase tracking-[0.2em]">{article.date}</span>
                                   <span className="w-1.5 h-1.5 bg-gray-200 rounded-full"></span>
-                                  <span className="text-[10px] text-indigo-500 font-black uppercase tracking-[0.2em] flex items-center gap-2">
-                                      <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20"><path d="M5 3a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2V5a2 2 0 00-2-2H5zM5 11a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2v-2a2 2 0 00-2-2H5zM11 5a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V5zM11 13a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"/></svg>
-                                      Gemini AI Verified
-                                  </span>
+                                  <span className="text-[10px] text-indigo-500 font-black uppercase tracking-[0.2em]">Auto Verified</span>
                               </div>
                               
                               <h3 className="text-2xl font-black text-gray-900 mb-5 leading-[1.3] group-hover:text-indigo-600 transition-colors">
@@ -222,7 +239,6 @@ const NewsSection: React.FC = () => {
                                       સંપૂર્ણ વિગત 
                                       <span className="group-hover/btn:translate-x-2 transition-transform text-xl leading-none">→</span>
                                   </button>
-                                  
                                   <button 
                                      onClick={() => {
                                         if (navigator.share) {

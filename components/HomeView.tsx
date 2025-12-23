@@ -30,7 +30,7 @@ const HomeView: React.FC<HomeViewProps> = ({ homeNews, featuredNotice, hasNewNot
               <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-50 rounded-full blur-3xl -mr-16 -mt-16"></div>
               <div className="relative z-10">
                   <h2 className="text-xl font-black text-gray-800 tracking-tight">કેમ છો, ભરાડાવાસીઓ! 👋</h2>
-                  <p className="text-xs text-gray-500 mt-1.5 font-medium leading-relaxed">ડિજિટલ ભરાડા પોર્ટલ પર આપનું હાર્દિક સ્વાગત છે. તમારી પંચાયત હવે તમારા ખિસ્સામાં.</p>
+                  <p className="text-xs text-gray-500 mt-1.5 font-medium leading-relaxed">તમારી પંચાયતનું ડિજિટલ પોર્ટલ. ગામની તમામ માહિતી હવે એક જ જગ્યાએ.</p>
               </div>
               <Link to="/panchayat" className="w-fit bg-gray-900 text-white px-4 py-2 rounded-xl text-[10px] font-bold mt-4 hover:bg-black transition-colors flex items-center gap-2">
                   પંચાયત પ્રોફાઇલ <span className="text-sm">→</span>
@@ -39,29 +39,31 @@ const HomeView: React.FC<HomeViewProps> = ({ homeNews, featuredNotice, hasNewNot
           <div className="sm:w-1/3"><WeatherWidget /></div>
       </div>
 
-      {/* Top Ad Unit */}
-      <AdSenseSlot slot="1234567890" format="rectangle" />
-
-      {/* Main Action Banner */}
-      <Link to="/search" className="block bg-emerald-600 rounded-[2.5rem] p-7 shadow-2xl shadow-emerald-200/50 cursor-pointer transform active:scale-[0.98] transition-all group relative overflow-hidden">
-          <div className="absolute top-0 right-0 w-48 h-48 bg-white/10 rounded-full blur-3xl -mr-16 -mt-16 group-hover:scale-110 transition-transform duration-700"></div>
+      {/* Main Action Banner - PDF Search Highlight */}
+      <Link to="/search" className="block bg-emerald-600 rounded-[2.5rem] p-8 shadow-2xl shadow-emerald-200/50 cursor-pointer transform active:scale-[0.98] transition-all group relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full blur-3xl -mr-24 -mt-24 group-hover:scale-110 transition-transform duration-700"></div>
           <div className="flex items-center gap-6 relative z-10">
-              <div className="bg-white/15 text-white p-4 rounded-2xl backdrop-blur-md border border-white/20 shadow-inner">
-                  <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+              <div className="bg-white text-emerald-600 p-5 rounded-3xl shadow-2xl border border-white/20">
+                  <svg className="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
               </div>
               <div className="flex-1">
-                  <h3 className="text-white font-black text-lg">સરકારી સહાયની યાદી ૨૦૨૪</h3>
-                  <p className="text-emerald-50 text-xs mt-1 font-bold opacity-80 uppercase tracking-wider">નામ શોધો અને સ્ટેટસ તપાસો</p>
+                  <h3 className="text-white font-black text-xl leading-tight">કૃષિ સહાય PDF ડેટા ૨૦૨૪</h3>
+                  <p className="text-emerald-100 text-sm mt-1 font-bold opacity-90">તમારું નામ અથવા અરજી નંબર અહીં શોધો</p>
+                  <div className="mt-4 inline-flex items-center gap-2 bg-white/20 text-white px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border border-white/30 backdrop-blur-md">
+                     Search Now →
+                  </div>
               </div>
           </div>
       </Link>
+
+      <AdSenseSlot slot="1234567890" format="rectangle" />
 
       {/* Services Grid */}
       <div>
           <div className="flex items-center justify-between px-1 mb-5">
               <h3 className="text-xs font-black text-gray-400 uppercase tracking-[0.2em] flex items-center gap-2">
                   <span className="w-1 h-3 bg-emerald-500 rounded-full"></span>
-                  ગ્રામ્ય સેવાઓ
+                  ગામની સેવાઓ
               </h3>
           </div>
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
@@ -76,7 +78,6 @@ const HomeView: React.FC<HomeViewProps> = ({ homeNews, featuredNotice, hasNewNot
           </div>
       </div>
 
-      {/* Middle Ad Unit */}
       <AdSenseSlot slot="0987654321" format="fluid" />
 
       {/* News & Notices Section */}
@@ -89,7 +90,7 @@ const HomeView: React.FC<HomeViewProps> = ({ homeNews, featuredNotice, hasNewNot
               <div className="space-y-3">
                   {homeNews.length === 0 ? (
                       <div className="bg-white border border-dashed border-gray-200 rounded-3xl p-6 text-center text-xs text-gray-400 font-bold">
-                          {hasNewNotices ? "ડેટા અપડેટ થઇ રહ્યો છે..." : "કોઈ સમાચાર નથી."}
+                          {hasNewNotices ? "AI સમાચાર લાવી રહ્યું છે..." : "કોઈ સમાચાર નથી."}
                       </div>
                   ) : homeNews.map((article: any, index) => (
                       <Link key={article.id} to="/service/news" className="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow cursor-pointer overflow-hidden flex items-center gap-4 block">
@@ -132,14 +133,13 @@ const HomeView: React.FC<HomeViewProps> = ({ homeNews, featuredNotice, hasNewNot
           </div>
       </div>
 
-      {/* Bottom Sticky Ad Unit */}
       <AdSenseSlot slot="1122334455" format="rectangle" />
 
       {/* Professional Footer */}
       <div className="pt-10 border-t border-gray-100 pb-10">
           <div className="grid grid-cols-2 gap-4 mb-8">
-            <Link to="/about" className="text-left p-5 bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-all"><span className="block text-[8px] font-black text-gray-400 uppercase mb-1">Explore</span><span className="text-xs font-bold">About Us (અમારા વિશે)</span></Link>
-            <Link to="/contact" className="text-left p-5 bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-all"><span className="block text-[8px] font-black text-gray-400 uppercase mb-1">Support</span><span className="text-xs font-bold">Contact (સંપર્ક)</span></Link>
+            <Link to="/about" className="text-left p-5 bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-all"><span className="block text-[8px] font-black text-gray-400 uppercase mb-1">Explore</span><span className="text-xs font-bold">About Us</span></Link>
+            <Link to="/contact" className="text-left p-5 bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-all"><span className="block text-[8px] font-black text-gray-400 uppercase mb-1">Support</span><span className="text-xs font-bold">Contact</span></Link>
             <Link to="/privacy" className="text-left p-5 bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-all"><span className="block text-[8px] font-black text-gray-400 uppercase mb-1">Legal</span><span className="text-xs font-bold">Privacy Policy</span></Link>
             <Link to="/terms" className="text-left p-5 bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-all"><span className="block text-[8px] font-black text-gray-400 uppercase mb-1">Usage</span><span className="text-xs font-bold">Terms & Conditions</span></Link>
           </div>
@@ -147,7 +147,6 @@ const HomeView: React.FC<HomeViewProps> = ({ homeNews, featuredNotice, hasNewNot
           <div className="text-center opacity-40">
             <div className="w-12 h-1 bg-gray-300 rounded-full mx-auto mb-6"></div>
             <p className="text-[9px] font-black text-gray-500 uppercase tracking-[0.4em]">BHARADA DIGITAL PORTAL • © 2024</p>
-            <p className="text-[8px] text-gray-400 mt-2">Designed & Maintained for Social Progress</p>
           </div>
       </div>
     </div>
