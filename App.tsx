@@ -86,6 +86,7 @@ const App: React.FC = () => {
               setIsSyncingNews(true);
               const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
               
+              // 1. Generate News Content
               const prompt = `Generate 5 high-quality, long-form Gujarati news articles for ${todayStr}. These are for a professional village portal to get AdSense approval. 
               Focus: Gujarat Government Agriculture (i-Khedut), educational scholarship deadlines, weather alerts, and PM-Kisan status. 
               Content must be original, helpful, and at least 300 words each. Return JSON array with title, summary, content, category.`;
@@ -122,8 +123,14 @@ const App: React.FC = () => {
                         contents: { parts: [{ text: `A professional journalistic news image representing rural Gujarat/India for: ${item.title}` }] },
                         config: { imageConfig: { aspectRatio: "16:9" } }
                     });
-                    for (const p of imgRes.candidates[0].content.parts) {
-                        if (p.inlineData) { imageUrl = `data:image/png;base64,${p.inlineData.data}`; break; }
+                    
+                    // Fixed TS18048 & TS2532: Added optional chaining and fallback
+                    const parts = imgRes.candidates?.[0]?.content?.parts || [];
+                    for (const p of parts) {
+                        if (p.inlineData) { 
+                          imageUrl = `data:image/png;base64,${p.inlineData.data}`; 
+                          break; 
+                        }
                     }
                   } catch(e) { }
 
