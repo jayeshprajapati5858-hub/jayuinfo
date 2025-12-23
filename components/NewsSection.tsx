@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { pool } from '../utils/db';
 import AdSenseSlot from './AdSenseSlot';
+import { GoogleGenAI } from "@google/genai";
 
 interface Article {
   id: number;
@@ -13,40 +14,11 @@ interface Article {
   date: string;
 }
 
-const seedNewsData: Article[] = [
-    {
-      id: 101,
-      title: "રેશન કાર્ડમાં નવું નામ કેવી રીતે ઉમેરવું? જાણો સંપૂર્ણ પ્રક્રિયા",
-      category: "યોજના",
-      summary: "તમારા પરિવારના નવા સભ્ય અથવા પત્નીનું નામ રેશન કાર્ડમાં ઉમેરવા માટે કયા કયા પુરાવા જોઈએ તેની યાદી.",
-      content: "રેશન કાર્ડ એ માત્ર અનાજ મેળવવાનું સાધન નથી...",
-      image: "https://images.unsplash.com/photo-1633158829585-23ba8f7c8caf?auto=format&fit=crop&q=80&w=1000",
-      date: "20 May 2024"
-    },
-    {
-      id: 102,
-      title: "સુકન્યા સમૃદ્ધિ યોજના ૨૦૨૪: દીકરીના લગ્ન અને ભણતર માટે સૌથી વધુ વ્યાજ",
-      category: "યોજના",
-      summary: "દીકરીનું ભવિષ્ય સુરક્ષિત કરવા માટે કેન્દ્ર સરકારની આ યોજનામાં ૮.૨% વ્યાજ મળી રહ્યું છે.",
-      content: "કેન્દ્ર સરકાર દ્વારા બેટી બચાવો બેટી પઢાવો અંતર્ગત...",
-      image: "https://images.unsplash.com/photo-1623050040776-37b0c841c6f3?auto=format&fit=crop&q=80&w=1000",
-      date: "21 May 2024"
-    },
-    {
-      id: 103,
-      title: "કપાસના ભાવમાં તેજી: APMC માં મણનો ભાવ ૧૭૦૦ ને પાર",
-      category: "ખેતીવાડી",
-      summary: "સૌરાષ્ટ્રના માર્કેટ યાર્ડમાં કપાસની આવક ઘટતા ભાવમાં ઉછાળો જોવા મળ્યો.",
-      content: "ચાલુ વર્ષે કપાસનું ઉત્પાદન ઓછું હોવાને કારણે...",
-      image: "https://images.unsplash.com/photo-1599581843324-7e77747e0996?auto=format&fit=crop&q=80&w=1000",
-      date: "22 May 2024"
-    }
-];
-
 const NewsSection: React.FC = () => {
-  const [news, setNews] = useState<Article[]>(seedNewsData);
+  const [news, setNews] = useState<Article[]>([]);
   const [activeTab, setActiveTab] = useState('All');
   const [loading, setLoading] = useState(true);
+  const [isSyncing, setIsSyncing] = useState(false);
 
   const categories = [
       { id: 'All', label: 'મુખ્ય સમાચાર' },
@@ -55,23 +27,66 @@ const NewsSection: React.FC = () => {
       { id: 'હવામાન', label: 'હવામાન' },
   ];
 
-  useEffect(() => {
-    const fetchNews = async () => {
-      try {
-        setLoading(true);
-        const res = await pool.query('SELECT * FROM news ORDER BY id DESC LIMIT 50');
-        if (res.rows.length > 0) {
-            setNews(res.rows);
-        }
-      } catch (err) {
-        console.warn("Using fallback news due to DB error", err);
-      } finally {
-        setLoading(false);
+  const fetchNews = async () => {
+    try {
+      setLoading(true);
+      const res = await pool.query('SELECT * FROM news ORDER BY id DESC LIMIT 50');
+      if (res.rows.length > 0) {
+          setNews(res.rows);
       }
-    };
+    } catch (err) {
+      console.warn("DB Quota reached or error, showing local cache.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
+  useEffect(() => {
     fetchNews();
   }, []);
+
+  // --- Gemini AI News Generation ---
+  const generateAINews = async () => {
+    if (!process.env.API_KEY) {
+      alert("AI Key missing! Please check environment variables.");
+      return;
+    }
+    
+    setIsSyncing(true);
+    try {
+      const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+      const response = await ai.models.generateContent({
+        model: "gemini-3-flash-preview",
+        contents: "Generate 5 latest news items related to Gujarat Agriculture and Govt Schemes in Gujarati. Format as a JSON array of objects with keys: title, category (strictly pick from: ખેતીવાડી, યોજના, સમાચાર, હવામાન), summary, content, date (today's date).",
+        config: { responseMimeType: "application/json" }
+      });
+
+      const aiData = JSON.parse(response.text);
+      
+      // Save AI News to DB
+      for (const item of aiData) {
+         await pool.query(
+           `INSERT INTO news (title, category, summary, content, image, date) VALUES ($1, $2, $3, $4, $5, $6)`,
+           [
+             item.title, 
+             item.category, 
+             item.summary, 
+             item.content, 
+             "https://images.unsplash.com/photo-1599581843324-7e77747e0996?auto=format&fit=crop&q=80&w=1000", 
+             item.date
+           ]
+         );
+      }
+      
+      fetchNews();
+      alert("AI દ્વારા તાજા સમાચાર અપડેટ કરવામાં આવ્યા છે!");
+    } catch (err) {
+      console.error("AI Generation Error:", err);
+      alert("AI અત્યારે વ્યસ્ત છે, થોડીવાર પછી પ્રયત્ન કરો.");
+    } finally {
+      setIsSyncing(false);
+    }
+  };
 
   const filteredNews = activeTab === 'All' 
     ? news 
@@ -81,30 +96,49 @@ const NewsSection: React.FC = () => {
     <div className="w-full max-w-7xl mx-auto px-4 mt-6 mb-8 animate-fade-in pb-20">
       
       {/* Header Section */}
-      <div className="flex justify-between items-end mb-6">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end mb-8 gap-4">
         <div>
            <div className="flex items-center gap-2 mb-1">
-             <span className="w-2 h-2 bg-red-600 rounded-full animate-pulse"></span>
-             <p className="text-[10px] font-black tracking-widest text-red-600 uppercase">Live Updates</p>
+             <span className="w-2.5 h-2.5 bg-red-600 rounded-full animate-pulse"></span>
+             <p className="text-[10px] font-black tracking-widest text-red-600 uppercase">Live AI Updates</p>
            </div>
-           <h2 className="text-2xl font-black text-gray-900 leading-none">ગ્રામ સમાચાર</h2>
-           <p className="text-xs text-gray-500 font-medium mt-1">ભરાડા ગામ અને ગુજરાતની તાજી માહિતી</p>
+           <h2 className="text-3xl font-black text-gray-900 leading-none tracking-tight">ગ્રામ સમાચાર</h2>
+           <p className="text-xs text-gray-500 font-bold mt-2">ભરાડા ગામ અને ગુજરાતની તાજી માહિતી Gemini AI દ્વારા</p>
         </div>
+
+        <button 
+           onClick={generateAINews}
+           disabled={isSyncing}
+           className={`flex items-center gap-2 px-5 py-2.5 rounded-2xl text-xs font-black uppercase tracking-widest transition-all shadow-xl ${
+             isSyncing ? 'bg-gray-200 text-gray-400' : 'bg-indigo-600 text-white shadow-indigo-100 hover:bg-indigo-700 active:scale-95'
+           }`}
+        >
+           {isSyncing ? (
+             <>
+               <svg className="animate-spin h-4 w-4 text-gray-400" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+               Syncing...
+             </>
+           ) : (
+             <>
+               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+               AI ન્યૂઝ અપડેટ કરો
+             </>
+           )}
+        </button>
       </div>
 
-      {/* Top Ad */}
       <AdSenseSlot slot="8877665544" format="rectangle" />
 
       {/* Category Filters */}
-      <div className="flex gap-2 overflow-x-auto pb-4 no-scrollbar mb-4">
+      <div className="flex gap-2 overflow-x-auto pb-6 no-scrollbar mb-4">
          {categories.map((cat) => (
              <button
                 key={cat.id}
                 onClick={() => setActiveTab(cat.id)}
                 className={`px-5 py-2.5 rounded-full text-xs font-bold whitespace-nowrap transition-all border ${
                     activeTab === cat.id 
-                    ? 'bg-indigo-600 text-white border-indigo-600 shadow-lg' 
-                    : 'bg-white text-gray-600 border-gray-100 hover:border-indigo-300'
+                    ? 'bg-gray-900 text-white border-gray-900 shadow-xl' 
+                    : 'bg-white text-gray-600 border-gray-100 hover:border-gray-300'
                 }`}
              >
                  {cat.label}
@@ -114,72 +148,76 @@ const NewsSection: React.FC = () => {
 
       {/* News Feed */}
       {loading ? (
-          <div className="space-y-4">
-              {[1,2,3].map(i => (
-                  <div key={i} className="animate-pulse flex flex-col p-4 bg-white rounded-3xl border border-gray-100">
-                      <div className="w-full h-48 bg-gray-100 rounded-2xl mb-4"></div>
-                      <div className="space-y-2">
-                          <div className="h-5 bg-gray-100 rounded w-3/4"></div>
-                          <div className="h-4 bg-gray-100 rounded w-full"></div>
+          <div className="space-y-6">
+              {[1,2].map(i => (
+                  <div key={i} className="animate-pulse flex flex-col p-6 bg-white rounded-3xl border border-gray-100 shadow-sm">
+                      <div className="w-full h-48 bg-gray-100 rounded-2xl mb-6"></div>
+                      <div className="space-y-3">
+                          <div className="h-6 bg-gray-100 rounded-lg w-3/4"></div>
+                          <div className="h-4 bg-gray-100 rounded-lg w-full"></div>
+                          <div className="h-4 bg-gray-100 rounded-lg w-5/6"></div>
                       </div>
                   </div>
               ))}
           </div>
       ) : (
-          <div className="space-y-8">
+          <div className="space-y-10">
               {filteredNews.length === 0 ? (
-                  <div className="text-center py-20 bg-gray-50 rounded-[2.5rem] border-2 border-dashed border-gray-200 flex flex-col items-center gap-4">
-                      <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center text-gray-200">
-                        <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z" strokeWidth="2"/></svg>
+                  <div className="text-center py-24 bg-gray-50 rounded-[3rem] border-2 border-dashed border-gray-200 flex flex-col items-center gap-4">
+                      <div className="w-20 h-20 bg-white rounded-full flex items-center justify-center text-gray-200 shadow-inner">
+                        <svg className="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z" strokeWidth="2"/></svg>
                       </div>
-                      <p className="text-gray-400 font-bold">હાલ કોઈ સમાચાર નથી.</p>
+                      <p className="text-gray-400 font-black uppercase tracking-widest text-sm">હાલ કોઈ સમાચાર નથી</p>
+                      <button onClick={generateAINews} className="text-indigo-600 text-xs font-bold underline">AI થી અત્યારે જ બનાવો</button>
                   </div>
               ) : (
                   filteredNews.map((article, idx) => (
                     <React.Fragment key={article.id}>
-                      {/* Insert ad every 3 articles */}
                       {idx > 0 && idx % 3 === 0 && <AdSenseSlot slot="5544332211" format="fluid" />}
                       
                       <article className="bg-white rounded-[2.5rem] shadow-sm border border-gray-100 overflow-hidden hover:shadow-2xl transition-all duration-500 group">
-                          <div className="relative h-56 sm:h-72 overflow-hidden">
+                          <div className="relative h-64 sm:h-80 overflow-hidden">
                               <img 
                                 src={article.image} 
                                 alt={article.title}
                                 className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-1000"
-                                onError={(e) => { (e.target as HTMLImageElement).src = "https://images.unsplash.com/photo-1586769852044-692d6e37d0d9?auto=format&fit=crop&w=800&q=80"; }}
+                                onError={(e) => { (e.target as HTMLImageElement).src = "https://images.unsplash.com/photo-1599581843324-7e77747e0996?auto=format&fit=crop&w=800&q=80"; }}
                               />
-                              <div className="absolute top-4 left-4">
-                                  <span className={`px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-wider text-white shadow-xl ${
-                                      article.category === 'ખેતીવાડી' ? 'bg-green-600' :
-                                      article.category === 'યોજના' ? 'bg-purple-600' :
-                                      article.category === 'હવામાન' ? 'bg-blue-500' :
-                                      'bg-indigo-600'
+                              <div className="absolute top-6 left-6">
+                                  <span className={`px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-wider text-white shadow-2xl ${
+                                      article.category === 'ખેતીવાડી' ? 'bg-emerald-600' :
+                                      article.category === 'યોજના' ? 'bg-indigo-600' :
+                                      article.category === 'હવામાન' ? 'bg-amber-500' :
+                                      'bg-gray-900'
                                   }`}>
                                       {article.category}
                                   </span>
                               </div>
-                              <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-black/70 to-transparent"></div>
+                              <div className="absolute bottom-0 left-0 right-0 h-40 bg-gradient-to-t from-black/80 to-transparent"></div>
                           </div>
 
                           <div className="p-8 relative">
-                              <div className="flex items-center gap-2 mb-4 text-[10px] text-gray-400 font-black uppercase tracking-[0.2em]">
-                                  <span>{article.date}</span>
+                              <div className="flex items-center gap-3 mb-4">
+                                  <span className="text-[10px] text-gray-400 font-black uppercase tracking-[0.2em]">{article.date}</span>
                                   <span className="w-1 h-1 bg-gray-300 rounded-full"></span>
-                                  <span className="text-indigo-600">Verified News</span>
+                                  <span className="text-[10px] text-indigo-500 font-black uppercase tracking-[0.2em] flex items-center gap-1">
+                                      <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path d="M5 3a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2V5a2 2 0 00-2-2H5zM5 11a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2v-2a2 2 0 00-2-2H5zM11 5a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V5zM11 13a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"/></svg>
+                                      AI Verified
+                                  </span>
                               </div>
                               
-                              <h3 className="text-xl font-black text-gray-900 mb-4 leading-tight group-hover:text-indigo-600 transition-colors">
+                              <h3 className="text-2xl font-black text-gray-900 mb-4 leading-tight group-hover:text-indigo-600 transition-colors">
                                   {article.title}
                               </h3>
                               
-                              <p className="text-sm text-gray-600 leading-relaxed mb-6 line-clamp-3 font-medium">
+                              <p className="text-sm text-gray-600 leading-relaxed mb-8 line-clamp-3 font-medium">
                                   {article.summary}
                               </p>
 
                               <div className="pt-6 border-t border-gray-50 flex justify-between items-center">
-                                  <button className="text-indigo-600 text-xs font-black uppercase tracking-widest flex items-center gap-2 group/btn">
+                                  <button className="text-indigo-600 text-[10px] font-black uppercase tracking-[0.2em] flex items-center gap-2 group/btn">
                                       સંપૂર્ણ વિગત વાંચો 
-                                      <span className="group-hover/btn:translate-x-2 transition-transform">→</span>
+                                      <span className="group-hover/btn:translate-x-2 transition-transform text-lg leading-none">→</span>
                                   </button>
                                   
                                   <button 
@@ -201,10 +239,12 @@ const NewsSection: React.FC = () => {
           </div>
       )}
 
+      <AdSenseSlot slot="1122334455" format="auto" />
+
       {/* Footer Info */}
-      <div className="mt-12 pt-8 border-t border-gray-100 text-center">
-          <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">
-              આ માહિતી માત્ર જાણકારી માટે છે. સત્તાવાર પુષ્ટિ માટે ગ્રામ પંચાયતનો સંપર્ક કરો.
+      <div className="mt-16 pt-8 border-t border-gray-100 text-center">
+          <p className="text-[10px] text-gray-400 font-black uppercase tracking-[0.3em]">
+              આ સમાચાર Gemini AI દ્વારા આપમેળે જનરેટ કરવામાં આવે છે.
           </p>
       </div>
     </div>
