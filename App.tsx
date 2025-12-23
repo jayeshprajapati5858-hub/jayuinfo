@@ -86,7 +86,9 @@ const App: React.FC = () => {
               console.log("App Main Sync: Missing news for today. Triggering...");
               setIsSyncingNews(true);
               const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-              const prompt = `Generate 8 authentic Gujarati news articles for ${todayStr}. Focus: Gujarat Govt Agriculture (i-Khedut) schemes, local Saurashtra weather, and PM-Kisan status. Ensure each article has title, summary, content and category.`;
+              
+              // 1. Generate News Content
+              const prompt = `Generate 5 professional Gujarati news articles for ${todayStr}. Focus: Gujarat Govt Agriculture (i-Khedut), weather, and PM-Kisan. Return as JSON array with title, summary, content, category.`;
               const aiRes = await ai.models.generateContent({
                   model: "gemini-3-flash-preview",
                   contents: prompt,
@@ -110,22 +112,30 @@ const App: React.FC = () => {
               
               const news = JSON.parse(aiRes.text || "[]");
               for (const item of news) {
-                  // Defensive check: Skip if critical fields are null to satisfy DB NOT NULL constraint
-                  if (!item.title || !item.content) {
-                    console.warn("Skipping invalid AI news item: missing title or content");
-                    continue;
-                  }
+                  if (!item.title || !item.content) continue;
 
-                  // Duplication check
+                  // 2. Generate News Image for each
+                  let imageUrl = null;
+                  try {
+                    const imgRes = await ai.models.generateContent({
+                        model: 'gemini-2.5-flash-image',
+                        contents: { parts: [{ text: `A realistic professional news image for: ${item.title}` }] },
+                        config: { imageConfig: { aspectRatio: "16:9" } }
+                    });
+                    for (const p of imgRes.candidates[0].content.parts) {
+                        if (p.inlineData) { imageUrl = `data:image/png;base64,${p.inlineData.data}`; break; }
+                    }
+                  } catch(e) { console.warn("Image sync error", e); }
+
+                  // 3. Save to DB
                   const exists = await pool.query('SELECT id FROM news WHERE title = $1 AND date = $2', [item.title, todayStr]);
                   if (exists.rows.length === 0) {
                     await pool.query(
-                        `INSERT INTO news (title, summary, content, category, date) VALUES ($1, $2, $3, $4, $5)`,
-                        [item.title, item.summary || '', item.content, item.category || 'સમાચાર', todayStr]
+                        `INSERT INTO news (title, summary, content, category, date, image) VALUES ($1, $2, $3, $4, $5, $6)`,
+                        [item.title, item.summary || '', item.content, item.category || 'સમાચાર', todayStr, imageUrl]
                     );
                   }
               }
-              // Refresh home news
               const newsRes = await pool.query('SELECT * FROM news ORDER BY id DESC LIMIT 3');
               setHomeNews(newsRes.rows);
           }
@@ -151,7 +161,6 @@ const App: React.FC = () => {
           const newsRes = await pool.query('SELECT * FROM news ORDER BY id DESC LIMIT 3');
           setHomeNews(newsRes.rows);
           
-          // Trigger sync if no news for today
           triggerBackgroundSync();
 
           const jobRes = await pool.query('SELECT * FROM jobs ORDER BY id DESC LIMIT 1');
@@ -164,7 +173,7 @@ const App: React.FC = () => {
 
   useEffect(() => {
     checkUpdates();
-    const interval = setInterval(checkUpdates, 60000); // Check every minute
+    const interval = setInterval(checkUpdates, 60000);
     return () => clearInterval(interval);
   }, [checkUpdates]);
 
@@ -199,7 +208,7 @@ const App: React.FC = () => {
       { id: 'marketplace', label: 'ગ્રામ્ય હાટ', color: 'bg-amber-600', icon: <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"></path></svg> },
       { id: 'notice', label: 'નોટિસ', color: 'bg-orange-600', hasNotification: hasNewNotices, icon: <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z"></path></svg> },
       { id: 'rojgar', label: 'રોજગાર', color: 'bg-emerald-600', hasNotification: hasNewJobs, icon: <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg> },
-      { id: 'health', label: 'આરોગ્ય', color: 'bg-teal-600', icon: <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.384-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" /></svg> },
+      { id: 'health', label: 'આરોગ્ય', color: 'bg-teal-600', icon: <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.384-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 00-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" /></svg> },
       { id: 'water', label: 'પાણી', color: 'bg-blue-600', icon: <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0a2 2 0 01-2 2H6a2 2 0 01-2-2m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5" /></svg> },
   ];
 
@@ -279,9 +288,12 @@ const App: React.FC = () => {
                         {homeNews.length === 0 ? (
                             <div className="bg-white border border-dashed border-gray-200 rounded-2xl p-6 text-center text-xs text-gray-400 font-bold">સમાચાર લોડ થઈ રહ્યા છે...</div>
                         ) : homeNews.map((article: any) => (
-                            <div key={article.id} onClick={() => handleServiceClick('news')} className="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow cursor-pointer">
-                                <span className="text-[9px] font-black text-indigo-600 uppercase mb-1 block tracking-wider">{article.category}</span>
-                                <h4 className="text-xs font-black text-gray-900 leading-tight line-clamp-2">{article.title}</h4>
+                            <div key={article.id} onClick={() => handleServiceClick('news')} className="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow cursor-pointer overflow-hidden flex items-center gap-4">
+                                {article.image && <img src={article.image} className="w-12 h-12 rounded-lg object-cover shrink-0" />}
+                                <div>
+                                    <span className="text-[9px] font-black text-indigo-600 uppercase mb-0.5 block tracking-wider">{article.category}</span>
+                                    <h4 className="text-xs font-black text-gray-900 leading-tight line-clamp-2">{article.title}</h4>
+                                </div>
                             </div>
                         ))}
                     </div>
