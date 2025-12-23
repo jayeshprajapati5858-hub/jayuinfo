@@ -13,8 +13,38 @@ interface Article {
   date: string;
 }
 
+const seedNewsData: Article[] = [
+    {
+      id: 101,
+      title: "રેશન કાર્ડમાં નવું નામ કેવી રીતે ઉમેરવું? જાણો સંપૂર્ણ પ્રક્રિયા",
+      category: "યોજના",
+      summary: "તમારા પરિવારના નવા સભ્ય અથવા પત્નીનું નામ રેશન કાર્ડમાં ઉમેરવા માટે કયા કયા પુરાવા જોઈએ તેની યાદી.",
+      content: "રેશન કાર્ડ એ માત્ર અનાજ મેળવવાનું સાધન નથી...",
+      image: "https://images.unsplash.com/photo-1633158829585-23ba8f7c8caf?auto=format&fit=crop&q=80&w=1000",
+      date: "20 May 2024"
+    },
+    {
+      id: 102,
+      title: "સુકન્યા સમૃદ્ધિ યોજના ૨૦૨૪: દીકરીના લગ્ન અને ભણતર માટે સૌથી વધુ વ્યાજ",
+      category: "યોજના",
+      summary: "દીકરીનું ભવિષ્ય સુરક્ષિત કરવા માટે કેન્દ્ર સરકારની આ યોજનામાં ૮.૨% વ્યાજ મળી રહ્યું છે.",
+      content: "કેન્દ્ર સરકાર દ્વારા બેટી બચાવો બેટી પઢાવો અંતર્ગત...",
+      image: "https://images.unsplash.com/photo-1623050040776-37b0c841c6f3?auto=format&fit=crop&q=80&w=1000",
+      date: "21 May 2024"
+    },
+    {
+      id: 103,
+      title: "કપાસના ભાવમાં તેજી: APMC માં મણનો ભાવ ૧૭૦૦ ને પાર",
+      category: "ખેતીવાડી",
+      summary: "સૌરાષ્ટ્રના માર્કેટ યાર્ડમાં કપાસની આવક ઘટતા ભાવમાં ઉછાળો જોવા મળ્યો.",
+      content: "ચાલુ વર્ષે કપાસનું ઉત્પાદન ઓછું હોવાને કારણે...",
+      image: "https://images.unsplash.com/photo-1599581843324-7e77747e0996?auto=format&fit=crop&q=80&w=1000",
+      date: "22 May 2024"
+    }
+];
+
 const NewsSection: React.FC = () => {
-  const [news, setNews] = useState<Article[]>([]);
+  const [news, setNews] = useState<Article[]>(seedNewsData);
   const [activeTab, setActiveTab] = useState('All');
   const [loading, setLoading] = useState(true);
 
@@ -30,9 +60,11 @@ const NewsSection: React.FC = () => {
       try {
         setLoading(true);
         const res = await pool.query('SELECT * FROM news ORDER BY id DESC LIMIT 50');
-        setNews(res.rows);
+        if (res.rows.length > 0) {
+            setNews(res.rows);
+        }
       } catch (err) {
-        console.error("Failed to load news", err);
+        console.warn("Using fallback news due to DB error", err);
       } finally {
         setLoading(false);
       }
@@ -59,6 +91,9 @@ const NewsSection: React.FC = () => {
            <p className="text-xs text-gray-500 font-medium mt-1">ભરાડા ગામ અને ગુજરાતની તાજી માહિતી</p>
         </div>
       </div>
+
+      {/* Top Ad */}
+      <AdSenseSlot slot="8877665544" format="rectangle" />
 
       {/* Category Filters */}
       <div className="flex gap-2 overflow-x-auto pb-4 no-scrollbar mb-4">

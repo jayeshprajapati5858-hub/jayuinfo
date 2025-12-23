@@ -38,6 +38,7 @@ const fallbackImages = [
 
 const seedNewsData = [
     {
+      id: 101,
       title: "રેશન કાર્ડમાં નવું નામ કેવી રીતે ઉમેરવું? જાણો સંપૂર્ણ પ્રક્રિયા",
       category: "યોજના",
       summary: "તમારા પરિવારના નવા સભ્ય અથવા પત્નીનું નામ રેશન કાર્ડમાં ઉમેરવા માટે કયા કયા પુરાવા જોઈએ તેની યાદી.",
@@ -46,6 +47,7 @@ const seedNewsData = [
       date: "20 May 2024"
     },
     {
+      id: 102,
       title: "સુકન્યા સમૃદ્ધિ યોજના ૨૦૨૪: દીકરીના લગ્ન અને ભણતર માટે સૌથી વધુ વ્યાજ",
       category: "યોજના",
       summary: "દીકરીનું ભવિષ્ય સુરક્ષિત કરવા માટે કેન્દ્ર સરકારની આ યોજનામાં ૮.૨% વ્યાજ મળી રહ્યું છે.",
@@ -54,6 +56,7 @@ const seedNewsData = [
       date: "21 May 2024"
     },
     {
+      id: 103,
       title: "કપાસના ભાવમાં તેજી: APMC માં મણનો ભાવ ૧૭૦૦ ને પાર",
       category: "ખેતીવાડી",
       summary: "સૌરાષ્ટ્રના માર્કેટ યાર્ડમાં કપાસની આવક ઘટતા ભાવમાં ઉછાળો જોવા મળ્યો.",
@@ -121,7 +124,7 @@ const SearchPage = () => {
 const App: React.FC = () => {
   const [hasNewNotices, setHasNewNotices] = useState(false);
   const [tickerNotices, setTickerNotices] = useState<any[]>([]);
-  const [homeNews, setHomeNews] = useState<any[]>([]);
+  const [homeNews, setHomeNews] = useState<any[]>(seedNewsData); // Default to seed data
   const [featuredNotice, setFeaturedNotice] = useState<any>(null);
   
   const location = useLocation();
@@ -145,18 +148,16 @@ const App: React.FC = () => {
       // Step 3: Fetch Data
       const newsRes = await pool.query('SELECT * FROM news ORDER BY id DESC LIMIT 5');
       
-      if (newsRes.rows.length === 0) {
-          // Seeding if empty
+      if (newsRes.rows.length > 0) {
+          setHomeNews(newsRes.rows);
+      } else {
+          // If DB exists but is empty, try to seed it once
           for (const article of seedNewsData) {
               await pool.query(
-                  `INSERT INTO news (title, category, summary, content, image, date) VALUES ($1, $2, $3, $4, $5, $6)`,
+                  `INSERT INTO news (title, category, summary, content, image, date) VALUES ($1, $2, $3, $4, $5, $6) ON CONFLICT DO NOTHING`,
                   [article.title, article.category, article.summary, article.content, article.image, article.date]
               );
           }
-          const seededRes = await pool.query('SELECT * FROM news ORDER BY id DESC LIMIT 5');
-          setHomeNews(seededRes.rows);
-      } else {
-          setHomeNews(newsRes.rows);
       }
 
       const noticeRes = await pool.query('SELECT * FROM notices ORDER BY id DESC LIMIT 5');
@@ -166,7 +167,8 @@ const App: React.FC = () => {
          setFeaturedNotice(noticeRes.rows[0]);
       }
     } catch (e) {
-      console.error("DB Load Error", e);
+      console.warn("DB Load Quota Exceeded or Error - Using local fallback data.", e);
+      // Data remains as seedNewsData (already initialized in useState)
     }
   }, []);
 
@@ -192,7 +194,6 @@ const App: React.FC = () => {
         </Routes>
       </main>
       
-      {/* Bottom Nav for Mobile */}
       <nav className="fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-md border-t border-gray-100 px-6 py-3 pb-8 z-50 md:hidden flex justify-between items-center shadow-[0_-8px_30px_rgb(0,0,0,0.04)]">
         <Link to="/" className={`flex flex-col items-center gap-1.5 ${location.pathname === '/' ? 'text-emerald-600' : 'text-gray-400'}`}>
           <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path></svg>
