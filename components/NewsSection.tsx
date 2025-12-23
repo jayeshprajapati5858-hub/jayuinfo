@@ -35,7 +35,7 @@ const NewsSection: React.FC = () => {
           setNews(res.rows);
       }
     } catch (err) {
-      console.warn("DB Quota reached or error, showing local cache.");
+      console.warn("DB Quota reached or connection error.");
     } finally {
       setLoading(false);
     }
@@ -57,32 +57,40 @@ const NewsSection: React.FC = () => {
       const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
       const response = await ai.models.generateContent({
         model: "gemini-3-flash-preview",
-        contents: "Generate 5 latest news items related to Gujarat Agriculture and Govt Schemes in Gujarati. Format as a JSON array of objects with keys: title, category (strictly pick from: ખેતીવાડી, યોજના, સમાચાર, હવામાન), summary, content, date (today's date).",
-        config: { responseMimeType: "application/json" }
+        contents: "Generate 5 latest news items related to Gujarat Agriculture, Farmer schemes, and Weather in Gujarati. Format as a JSON array of objects with keys: title, category (strictly pick from: ખેતીવાડી, યોજના, સમાચાર, હવામાન), summary, content, date (today's date string).",
+        config: { 
+          responseMimeType: "application/json"
+        }
       });
 
-      const aiData = JSON.parse(response.text);
+      const text = response.text;
+      if (!text) {
+        throw new Error("AI returned empty response");
+      }
+
+      const aiData = JSON.parse(text);
       
       // Save AI News to DB
-      for (const item of aiData) {
-         await pool.query(
-           `INSERT INTO news (title, category, summary, content, image, date) VALUES ($1, $2, $3, $4, $5, $6)`,
-           [
-             item.title, 
-             item.category, 
-             item.summary, 
-             item.content, 
-             "https://images.unsplash.com/photo-1599581843324-7e77747e0996?auto=format&fit=crop&q=80&w=1000", 
-             item.date
-           ]
-         );
+      if (Array.isArray(aiData)) {
+          for (const item of aiData) {
+             await pool.query(
+               `INSERT INTO news (title, category, summary, content, image, date) VALUES ($1, $2, $3, $4, $5, $6)`,
+               [
+                 item.title, 
+                 item.category, 
+                 item.summary, 
+                 item.content, 
+                 "https://images.unsplash.com/photo-1599581843324-7e77747e0996?auto=format&fit=crop&q=80&w=1000", 
+                 item.date
+               ]
+             );
+          }
+          fetchNews();
+          alert("Gemini AI દ્વારા તાજા સમાચાર સફળતાપૂર્વક અપડેટ થયા છે!");
       }
-      
-      fetchNews();
-      alert("AI દ્વારા તાજા સમાચાર અપડેટ કરવામાં આવ્યા છે!");
     } catch (err) {
       console.error("AI Generation Error:", err);
-      alert("AI અત્યારે વ્યસ્ત છે, થોડીવાર પછી પ્રયત્ન કરો.");
+      alert("AI અત્યારે વ્યસ્ત છે અથવા નેટવર્ક એરર છે. થોડીવાર પછી ફરી પ્રયત્ન કરો.");
     } finally {
       setIsSyncing(false);
     }
@@ -100,23 +108,23 @@ const NewsSection: React.FC = () => {
         <div>
            <div className="flex items-center gap-2 mb-1">
              <span className="w-2.5 h-2.5 bg-red-600 rounded-full animate-pulse"></span>
-             <p className="text-[10px] font-black tracking-widest text-red-600 uppercase">Live AI Updates</p>
+             <p className="text-[10px] font-black tracking-widest text-red-600 uppercase">Live Gemini AI Updates</p>
            </div>
            <h2 className="text-3xl font-black text-gray-900 leading-none tracking-tight">ગ્રામ સમાચાર</h2>
-           <p className="text-xs text-gray-500 font-bold mt-2">ભરાડા ગામ અને ગુજરાતની તાજી માહિતી Gemini AI દ્વારા</p>
+           <p className="text-xs text-gray-500 font-bold mt-2">ભરાડા ગામ અને ગુજરાતની તાજી માહિતી માત્ર એક ક્લિક પર</p>
         </div>
 
         <button 
            onClick={generateAINews}
            disabled={isSyncing}
-           className={`flex items-center gap-2 px-5 py-2.5 rounded-2xl text-xs font-black uppercase tracking-widest transition-all shadow-xl ${
-             isSyncing ? 'bg-gray-200 text-gray-400' : 'bg-indigo-600 text-white shadow-indigo-100 hover:bg-indigo-700 active:scale-95'
+           className={`flex items-center gap-2 px-6 py-3 rounded-2xl text-xs font-black uppercase tracking-widest transition-all shadow-xl ${
+             isSyncing ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'bg-indigo-600 text-white shadow-indigo-100 hover:bg-indigo-700 active:scale-95'
            }`}
         >
            {isSyncing ? (
              <>
                <svg className="animate-spin h-4 w-4 text-gray-400" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
-               Syncing...
+               AI સમાચાર બનાવી રહ્યું છે...
              </>
            ) : (
              <>
@@ -155,7 +163,6 @@ const NewsSection: React.FC = () => {
                       <div className="space-y-3">
                           <div className="h-6 bg-gray-100 rounded-lg w-3/4"></div>
                           <div className="h-4 bg-gray-100 rounded-lg w-full"></div>
-                          <div className="h-4 bg-gray-100 rounded-lg w-5/6"></div>
                       </div>
                   </div>
               ))}
@@ -168,7 +175,7 @@ const NewsSection: React.FC = () => {
                         <svg className="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z" strokeWidth="2"/></svg>
                       </div>
                       <p className="text-gray-400 font-black uppercase tracking-widest text-sm">હાલ કોઈ સમાચાર નથી</p>
-                      <button onClick={generateAINews} className="text-indigo-600 text-xs font-bold underline">AI થી અત્યારે જ બનાવો</button>
+                      <button onClick={generateAINews} className="text-indigo-600 text-xs font-bold underline">AI થી સમાચાર મેળવવા બટન દબાવો</button>
                   </div>
               ) : (
                   filteredNews.map((article, idx) => (
@@ -202,7 +209,7 @@ const NewsSection: React.FC = () => {
                                   <span className="w-1 h-1 bg-gray-300 rounded-full"></span>
                                   <span className="text-[10px] text-indigo-500 font-black uppercase tracking-[0.2em] flex items-center gap-1">
                                       <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path d="M5 3a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2V5a2 2 0 00-2-2H5zM5 11a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2v-2a2 2 0 00-2-2H5zM11 5a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V5zM11 13a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"/></svg>
-                                      AI Verified
+                                      Gemini Verified
                                   </span>
                               </div>
                               
@@ -216,7 +223,7 @@ const NewsSection: React.FC = () => {
 
                               <div className="pt-6 border-t border-gray-50 flex justify-between items-center">
                                   <button className="text-indigo-600 text-[10px] font-black uppercase tracking-[0.2em] flex items-center gap-2 group/btn">
-                                      સંપૂર્ણ વિગત વાંચો 
+                                      વિગતવાર વાંચો 
                                       <span className="group-hover/btn:translate-x-2 transition-transform text-lg leading-none">→</span>
                                   </button>
                                   
@@ -239,12 +246,10 @@ const NewsSection: React.FC = () => {
           </div>
       )}
 
-      <AdSenseSlot slot="1122334455" format="auto" />
-
       {/* Footer Info */}
       <div className="mt-16 pt-8 border-t border-gray-100 text-center">
           <p className="text-[10px] text-gray-400 font-black uppercase tracking-[0.3em]">
-              આ સમાચાર Gemini AI દ્વારા આપમેળે જનરેટ કરવામાં આવે છે.
+              આ સમાચાર Gemini AI દ્વારા રોજેરોજ અપડેટ કરવામાં આવે છે.
           </p>
       </div>
     </div>
