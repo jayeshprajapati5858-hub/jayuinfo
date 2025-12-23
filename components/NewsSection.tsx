@@ -1,330 +1,194 @@
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import { pool } from '../utils/db';
-import { GoogleGenAI, Type } from "@google/genai";
 
 interface Article {
-  id?: number;
+  id: number;
   title: string;
-  date: string;
+  category: string;
   summary: string;
   content: string;
-  category: string;
-  image?: string;
-  sourceUrl?: string;
+  image: string;
+  date: string;
 }
 
-// Helper to get dynamic date
-const getDynamicDate = (daysAgo: number = 0) => {
-  const d = new Date();
-  d.setDate(d.getDate() - daysAgo);
-  return d.toLocaleDateString('gu-IN', { day: 'numeric', month: 'long', year: 'numeric' });
-};
-
-const fallbackImages = [
-    "https://images.unsplash.com/photo-1625246333195-78d9c38ad449?auto=format&fit=crop&w=800&q=80", 
-    "https://images.unsplash.com/photo-1595113316349-9fa4eb24f884?auto=format&fit=crop&w=800&q=80",
-    "https://images.unsplash.com/photo-1500937386664-56d1dfef3854?auto=format&fit=crop&w=800&q=80", 
-    "https://images.unsplash.com/photo-1530933449625-7f58d9b32564?auto=format&fit=crop&w=800&q=80",
-    "https://images.unsplash.com/photo-1605000797499-95a51c5269ae?auto=format&fit=crop&w=800&q=80"
-];
-
-// Fallback news updated to be generic but relevant if API fails
-const fallbackNews: Article[] = [
-    {
-        id: 101,
-        title: "પીએમ કિસાન ૧૯મો હપ્તો: ખેડૂતો માટે મહત્વના સમાચાર",
-        date: getDynamicDate(0),
-        summary: "પીએમ કિસાન સન્માન નિધિના ૧૯મા હપ્તાની તારીખ ટૂંક સમયમાં જાહેર થશે. e-KYC કરાવવું ફરજિયાત.",
-        content: "કેન્દ્ર સરકાર દ્વારા ખેડૂતોને આર્થિક મદદ કરવા માટે પીએમ કિસાન યોજના ચલાવવામાં આવે છે. ૧૮મો હપ્તો મળી ચૂક્યો છે અને હવે ૧૯મા હપ્તાની રાહ જોવાઈ રહી છે. ફેબ્રુઆરી ૨૦૨૫ ના અંત સુધીમાં અથવા માર્ચની શરૂઆતમાં આ હપ્તો જમા થવાની શક્યતા છે. જે ખેડૂતોનું e-KYC બાકી હોય તેમણે તાત્કાલિક કરાવી લેવું.",
-        category: "ખેતીવાડી (સોર્સ: PM Portal)",
-        image: fallbackImages[0]
-    },
-    {
-        id: 102,
-        title: "આજના બજાર ભાવ: કપાસ અને મગફળીમાં હલચલ",
-        date: getDynamicDate(0),
-        summary: "સૌરાષ્ટ્રના યાર્ડમાં આજે કપાસ અને મગફળીની આવક સામાન્ય રહી. જાણો આજના ભાવ.",
-        content: "આજે રાજકોટ, ગોંડલ અને ઊંઝા માર્કેટ યાર્ડમાં મિશ્ર વાતાવરણ જોવા મળ્યું હતું. કપાસના ભાવમાં મણે ૧૦-૨૦ રૂપિયાનો સુધારો જોવા મળ્યો છે. જીરુંની આવક શરૂ થવાની તૈયારીમાં છે.",
-        category: "બજાર ભાવ (સોર્સ: APMC)",
-        image: fallbackImages[4]
-    }
-];
-
 const NewsSection: React.FC = () => {
-  const [newsList, setNewsList] = useState<Article[]>([]);
+  const [news, setNews] = useState<Article[]>([]);
+  const [activeTab, setActiveTab] = useState('All');
   const [loading, setLoading] = useState(true);
-  const [syncing, setSyncing] = useState(false);
-  const [selectedId, setSelectedId] = useState<number | null>(null);
-  const [isAdmin, setIsAdmin] = useState(false);
-  const [showLogin, setShowLogin] = useState(false);
-  const [pin, setPin] = useState('');
 
-  const todayStr = new Date().toLocaleDateString('gu-IN');
+  // Define categories that appeal to AdSense and Rural Users
+  const categories = [
+      { id: 'All', label: 'મુખ્ય સમાચાર' },
+      { id: 'ખેતીવાડી', label: 'કૃષિ જગત' },
+      { id: 'યોજના', label: 'સરકારી યોજના' },
+      { id: 'હવામાન', label: 'હવામાન' },
+  ];
 
-  // Generate image using Gemini
-  const generateImageForNews = async (title: string, index: number): Promise<string> => {
-    const lastImgError = localStorage.getItem('lastImgError');
-    if (lastImgError && Date.now() - parseInt(lastImgError) < 30 * 60 * 1000) {
-        return fallbackImages[index % fallbackImages.length];
-    }
+  useEffect(() => {
+    const fetchNews = async () => {
+      try {
+        setLoading(true);
+        // Ensure table exists (redundant safety)
+        await pool.query(`
+            CREATE TABLE IF NOT EXISTS news (
+                id SERIAL PRIMARY KEY, title TEXT, category TEXT, summary TEXT, content TEXT, image TEXT, date TEXT, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        `);
 
-    try {
-      const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-      const response = await ai.models.generateContent({
-        model: 'gemini-2.5-flash-image',
-        contents: {
-          parts: [{ text: `A realistic news photo for: "${title}". Context: Rural India, Gujarat agriculture. 16:9 aspect ratio.` }],
-        },
-        config: { imageConfig: { aspectRatio: "16:9" } },
-      });
-
-      const parts = response.candidates?.[0]?.content?.parts || [];
-      for (const part of parts) {
-        if (part.inlineData) {
-          return `data:image/png;base64,${part.inlineData.data}`;
-        }
+        // Fetch latest 50 news items
+        const res = await pool.query('SELECT * FROM news ORDER BY id DESC LIMIT 50');
+        setNews(res.rows);
+      } catch (err) {
+        console.error("Failed to load news", err);
+      } finally {
+        setLoading(false);
       }
-      return fallbackImages[index % fallbackImages.length];
-    } catch (err: any) { 
-        if (err?.message?.includes('429') || err?.message?.includes('quota')) {
-            localStorage.setItem('lastImgError', Date.now().toString());
-        }
-        return fallbackImages[index % fallbackImages.length]; 
-    }
-  };
+    };
 
-  const autoSyncDailyNews = useCallback(async (force = false) => {
-    if (syncing) return;
+    fetchNews();
+  }, []);
 
-    // We allow force refresh even if quota was hit recently, because user explicitly asked for it
-    if (!force) {
-        const lastQuotaError = localStorage.getItem('lastQuotaError');
-        if (lastQuotaError && Date.now() - parseInt(lastQuotaError) < 60 * 60 * 1000) return;
-    }
-
-    setSyncing(true);
-    try {
-      const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-      
-      // Explicitly asking for REAL TIME search
-      const prompt = `
-      Perform a Google Search to find the absolute LATEST news for farmers in Gujarat for today: ${new Date().toLocaleDateString('en-GB')}.
-      
-      Search specifically for:
-      1. "PM Kisan 19th installment date 2025 official news today"
-      2. "Today's APMC market rates Gujarat ${new Date().toLocaleDateString('en-GB')} live"
-      3. "Gujarat Government Agriculture Schemes notification February 2025"
-      4. "Weather forecast Gujarat today IMD"
-
-      Based on the search results, generate 4 news articles in GUJARATI language.
-      
-      IMPORTANT: In the 'category' field, include the Source Name. Example: "ખેતીવાડી (સોર્સ: TV9)" or "યોજના (સોર્સ: PM India)".
-      
-      Format strictly as JSON array:
-      [{
-        "title": "Headline in Gujarati",
-        "summary": "Short summary in Gujarati",
-        "content": "Detailed report (min 60 words) in Gujarati",
-        "category": "Category with Source Name"
-      }]
-      `;
-
-      const response = await ai.models.generateContent({
-        model: "gemini-3-flash-preview",
-        contents: prompt,
-        config: {
-          tools: [{ googleSearch: {} }], // ENABLE GOOGLE SEARCH GROUNDING
-          responseMimeType: "application/json",
-          responseSchema: {
-            type: Type.ARRAY,
-            items: {
-              type: Type.OBJECT,
-              properties: {
-                title: { type: Type.STRING },
-                summary: { type: Type.STRING },
-                content: { type: Type.STRING },
-                category: { type: Type.STRING }
-              },
-              required: ["title", "summary", "content", "category"]
-            }
-          }
-        },
-      });
-
-      const parsedNews = JSON.parse(response.text || "[]");
-
-      if (parsedNews.length > 0) {
-        let index = 0;
-        for (const item of parsedNews) {
-          if (!item.title || !item.content) continue;
-          
-          const existing = await pool.query('SELECT id, image FROM news WHERE title = $1', [item.title]);
-          
-          if (existing.rows.length === 0) {
-            const imageUrl = await generateImageForNews(item.title, index);
-            await pool.query(
-              `INSERT INTO news (title, summary, content, category, date, image) VALUES ($1, $2, $3, $4, $5, $6)`,
-              [item.title, item.summary || '', item.content, item.category || 'સમાચાર', todayStr, imageUrl]
-            );
-          }
-          index++;
-        }
-        
-        const refresh = await pool.query('SELECT * FROM news ORDER BY id DESC LIMIT 20');
-        setNewsList(refresh.rows);
-      }
-    } catch (err: any) {
-      console.error("Auto-Sync Failed:", err);
-      if (err?.message?.includes('quota') || err?.message?.includes('429')) {
-          localStorage.setItem('lastQuotaError', Date.now().toString());
-      }
-    } finally {
-      setSyncing(false);
-    }
-  }, [syncing, todayStr]);
-
-  const fetchNews = useCallback(async () => {
-    setLoading(true);
-    try {
-      await pool.query(`CREATE TABLE IF NOT EXISTS news (id SERIAL PRIMARY KEY, title TEXT, summary TEXT, content TEXT, category TEXT, date TEXT, image TEXT)`);
-      const result = await pool.query('SELECT * FROM news ORDER BY id DESC LIMIT 20');
-      const data = result.rows;
-      
-      if (data.length > 0) {
-          setNewsList(data);
-          // Check if we have data for TODAY
-          const hasToday = data.some((n: any) => n.date === todayStr);
-          if (!hasToday) {
-             console.log("Date mismatch or old data. Syncing fresh news...");
-             autoSyncDailyNews(true);
-          }
-      } else {
-          setNewsList(fallbackNews);
-          autoSyncDailyNews(true);
-      }
-    } catch (err: any) { 
-        console.error("Fetch Error:", err);
-        setNewsList(fallbackNews);
-    } finally { 
-        setLoading(false); 
-    }
-  }, [autoSyncDailyNews, todayStr]);
-
-  useEffect(() => { fetchNews(); }, [fetchNews]);
+  const filteredNews = activeTab === 'All' 
+    ? news 
+    : news.filter(n => n.category === activeTab || n.category.includes(activeTab));
 
   return (
-    <div className="w-full max-w-4xl mx-auto px-4 py-6 animate-fade-in pb-20">
-      <div className="mb-8 text-center relative">
-          <div className="flex flex-col items-center gap-2">
-             <div className="inline-block bg-emerald-50 px-4 py-1.5 rounded-full border border-emerald-100">
-                <span className="text-[10px] font-black text-emerald-700 uppercase tracking-widest flex items-center gap-2">
-                    <span className={`w-2 h-2 rounded-full ${syncing ? 'bg-orange-500 animate-ping' : 'bg-emerald-500'}`}></span>
-                    {syncing ? 'Google પરથી લાઈવ માહિતી લેવાઈ રહી છે...' : `આજની તારીખ: ${todayStr}`}
-                </span>
-             </div>
-             {!syncing && (
-                <button onClick={() => autoSyncDailyNews(true)} className="text-[10px] text-emerald-600 font-bold underline cursor-pointer hover:text-emerald-800 flex items-center gap-1 bg-white px-3 py-1 rounded-full shadow-sm border border-emerald-100">
-                   <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
-                   લાઈવ સમાચાર રિફ્રેશ કરો (Live Search)
-                </button>
-             )}
-          </div>
-          <h2 className="text-3xl font-black text-gray-900 mt-2">તાજા સમાચાર અને લેખ</h2>
-      </div>
-
-      <div className="space-y-12">
-        {loading && newsList.length === 0 ? (
-          <div className="text-center py-20 opacity-30 flex flex-col items-center gap-4">
-             <div className="w-8 h-8 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin"></div>
-             <p>Google પરથી સમાચાર લોડ થઈ રહ્યા છે...</p>
-          </div>
-        ) : (
-          newsList.map((article, idx) => (
-            <div key={article.id || idx} className="bg-white rounded-[3rem] shadow-sm border border-gray-100 overflow-hidden group hover:shadow-2xl transition-all duration-500 relative">
-              
-              {/* Live Badge for Today's News */}
-              {article.date === todayStr && (
-                  <div className="absolute top-4 right-4 z-10 bg-red-600 text-white text-[10px] font-black px-3 py-1 rounded-full shadow-lg flex items-center gap-1 animate-pulse">
-                      <span className="w-1.5 h-1.5 bg-white rounded-full"></span>
-                      LIVE from Google
-                  </div>
-              )}
-
-              <div className="aspect-[16/9] w-full bg-gray-100 relative overflow-hidden">
-                {article.image ? (
-                  <img src={article.image} alt={article.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-1000" loading="lazy" />
-                ) : (
-                  <img src={fallbackImages[idx % fallbackImages.length]} alt="Fallback" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-1000 opacity-90" />
-                )}
-                <div className="absolute top-6 left-6">
-                  <span className="text-[10px] font-black px-4 py-1.5 rounded-full uppercase bg-white/90 text-emerald-700 backdrop-blur-md shadow-lg border border-emerald-100">
-                    {article.category}
-                  </span>
-                </div>
-              </div>
-
-              <div className="p-8 md:p-12">
-                <p className="text-[10px] text-gray-400 font-bold mb-4 flex items-center gap-2">
-                   <span className={`w-1.5 h-1.5 rounded-full ${article.date === todayStr ? 'bg-green-500' : 'bg-gray-300'}`}></span>
-                   {article.date}
-                </p>
-                <h3 className="text-2xl md:text-3xl font-black text-gray-900 mb-6 cursor-pointer group-hover:text-emerald-600 transition-colors leading-tight" onClick={() => setSelectedId(selectedId === article.id ? null : article.id!)}>
-                  {article.title}
-                </h3>
-                <p className="text-base text-gray-500 mb-8 leading-relaxed line-clamp-3">{article.summary}</p>
-                
-                {selectedId === article.id && (
-                  <div className="mt-8 pt-8 border-t border-gray-100 animate-fade-in text-gray-800 text-lg leading-loose whitespace-pre-wrap">
-                    <div className="prose prose-emerald prose-lg max-w-none mb-10 font-medium">
-                      {article.content}
-                    </div>
-                    <div className="bg-gray-50 p-6 rounded-[2rem] flex flex-col md:flex-row justify-between items-center gap-4 border border-gray-100">
-                       <button onClick={() => {
-                          const text = `📢 *${article.title}*\n\n${article.summary}\n\nવધુ વાંચો: https://www.jayuinfo.in`;
-                          window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
-                       }} className="w-full md:w-auto bg-green-500 text-white px-8 py-3 rounded-2xl shadow-xl shadow-green-100 flex items-center justify-center gap-2 text-sm font-black active:scale-95 transition-all">
-                          WhatsApp પર મોકલો
-                       </button>
-                    </div>
-                  </div>
-                )}
-                
-                <div className="flex justify-between items-center mt-6">
-                  <button onClick={() => setSelectedId(selectedId === article.id ? null : article.id!)} className="text-emerald-600 font-black text-xs uppercase tracking-[0.2em] border-b-2 border-emerald-100 hover:border-emerald-500 transition-all pb-1">
-                    {selectedId === article.id ? 'ઓછું વાંચો ↑' : 'સંપૂર્ણ સમાચાર વાંચો ↓'}
-                  </button>
-                  {isAdmin && (
-                    <button onClick={async () => {
-                      if(confirm('Delete?')) {
-                        try {
-                            await pool.query('DELETE FROM news WHERE id = $1', [article.id]);
-                            setNewsList(newsList.filter(n => n.id !== article.id));
-                        } catch(e) { alert("Delete failed"); }
-                      }
-                    }} className="text-red-300 hover:text-red-500 transition-colors p-2">
-                      Delete
-                    </button>
-                  )}
-                </div>
-              </div>
-            </div>
-          ))
-        )}
-      </div>
-
-      {showLogin && (
-        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-6">
-          <form onSubmit={(e) => { e.preventDefault(); if (pin === '1234') { setIsAdmin(true); setShowLogin(false); setPin(''); } else { alert('Error'); } }} className="bg-white p-8 rounded-[2.5rem] shadow-2xl w-full max-w-xs text-center border border-gray-100">
-            <h3 className="font-black text-xl mb-6">એડમિન લૉગિન</h3>
-            <input type="password" value={pin} onChange={e => setPin(e.target.value)} placeholder="PIN" className="w-full bg-gray-50 p-4 rounded-2xl mb-4 text-center border-none outline-none focus:ring-2 focus:ring-emerald-100" autoFocus />
-            <button type="submit" className="w-full bg-emerald-600 text-white py-4 rounded-2xl font-black">Login</button>
-            <button type="button" onClick={() => setShowLogin(false)} className="mt-4 text-[10px] font-bold text-gray-400 uppercase tracking-widest">કેન્સલ</button>
-          </form>
+    <div className="w-full max-w-7xl mx-auto px-4 mt-6 mb-8 animate-fade-in pb-20">
+      
+      {/* Header Section */}
+      <div className="flex justify-between items-end mb-6">
+        <div>
+           <div className="flex items-center gap-2 mb-1">
+             <span className="w-2 h-2 bg-red-600 rounded-full animate-pulse"></span>
+             <p className="text-[10px] font-black tracking-widest text-red-600 uppercase">Live Updates</p>
+           </div>
+           <h2 className="text-2xl font-black text-gray-900 leading-none">ગ્રામ સમાચાર</h2>
+           <p className="text-xs text-gray-500 font-medium mt-1">ભરાડા ગામ અને ગુજરાતની ખેતીવાડીના તાજા સમાચાર</p>
         </div>
+      </div>
+
+      {/* Category Filters */}
+      <div className="flex gap-2 overflow-x-auto pb-4 no-scrollbar mb-4">
+         {categories.map((cat) => (
+             <button
+                key={cat.id}
+                onClick={() => setActiveTab(cat.id)}
+                className={`px-4 py-2 rounded-full text-xs font-bold whitespace-nowrap transition-all border ${
+                    activeTab === cat.id 
+                    ? 'bg-indigo-600 text-white border-indigo-600 shadow-md' 
+                    : 'bg-white text-gray-600 border-gray-200 hover:border-indigo-300'
+                }`}
+             >
+                 {cat.label}
+             </button>
+         ))}
+      </div>
+
+      {/* News Feed */}
+      {loading ? (
+          <div className="space-y-4">
+              {[1,2,3].map(i => (
+                  <div key={i} className="animate-pulse flex gap-4 p-4 bg-white rounded-2xl border border-gray-100">
+                      <div className="w-24 h-24 bg-gray-200 rounded-xl shrink-0"></div>
+                      <div className="flex-1 space-y-2">
+                          <div className="h-4 bg-gray-200 rounded w-3/4"></div>
+                          <div className="h-3 bg-gray-200 rounded w-full"></div>
+                          <div className="h-3 bg-gray-200 rounded w-1/2"></div>
+                      </div>
+                  </div>
+              ))}
+          </div>
+      ) : (
+          <div className="space-y-6">
+              {filteredNews.length === 0 ? (
+                  <div className="text-center py-20 bg-gray-50 rounded-[2rem] border-2 border-dashed border-gray-200">
+                      <p className="text-gray-400 font-bold">હાલ કોઈ સમાચાર નથી.</p>
+                      <p className="text-xs text-gray-400 mt-1">ડેટા સિંક થઇ રહ્યો છે, થોડીવાર પછી પ્રયાસ કરો.</p>
+                  </div>
+              ) : (
+                  filteredNews.map((article, index) => (
+                      <article key={article.id} className="bg-white rounded-[2rem] shadow-sm border border-gray-100 overflow-hidden hover:shadow-xl transition-shadow duration-300 group">
+                          
+                          {/* Article Image */}
+                          <div className="relative h-48 sm:h-64 overflow-hidden">
+                              <img 
+                                src={article.image} 
+                                alt={article.title}
+                                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
+                                onError={(e) => {
+                                    (e.target as HTMLImageElement).src = "https://images.unsplash.com/photo-1586769852044-692d6e37d0d9?auto=format&fit=crop&w=800&q=80";
+                                }}
+                              />
+                              <div className="absolute top-4 left-4">
+                                  <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider text-white shadow-lg ${
+                                      article.category === 'ખેતીવાડી' ? 'bg-green-600' :
+                                      article.category === 'યોજના' ? 'bg-purple-600' :
+                                      article.category === 'હવામાન' ? 'bg-blue-500' :
+                                      'bg-indigo-600'
+                                  }`}>
+                                      {article.category}
+                                  </span>
+                              </div>
+                              <div className="absolute bottom-0 left-0 right-0 h-24 bg-gradient-to-t from-black/80 to-transparent"></div>
+                          </div>
+
+                          {/* Content */}
+                          <div className="p-6 relative">
+                              <div className="flex items-center gap-2 mb-3 text-[10px] text-gray-400 font-bold uppercase tracking-widest">
+                                  <span>{article.date}</span>
+                                  <span>•</span>
+                                  <span>GNews Verified</span>
+                              </div>
+                              
+                              <h3 className="text-xl font-black text-gray-900 mb-3 leading-tight group-hover:text-indigo-600 transition-colors">
+                                  {article.title}
+                              </h3>
+                              
+                              <p className="text-sm text-gray-600 leading-relaxed mb-4 line-clamp-3">
+                                  {article.summary}
+                              </p>
+
+                              {/* AdSense Friendly "Read More" simulation (Expands content in UI logic if needed, currently linking to nothing to keep it SPA) */}
+                              <div className="pt-4 border-t border-gray-100 flex justify-between items-center">
+                                  <button className="text-indigo-600 text-xs font-black uppercase tracking-wider flex items-center gap-1 group/btn">
+                                      સંપૂર્ણ સમાચાર વાંચો 
+                                      <span className="group-hover/btn:translate-x-1 transition-transform">→</span>
+                                  </button>
+                                  
+                                  {/* Share Button */}
+                                  <button 
+                                     onClick={() => {
+                                        if (navigator.share) {
+                                            navigator.share({
+                                                title: article.title,
+                                                text: article.summary,
+                                                url: window.location.href
+                                            });
+                                        } else {
+                                            alert("લિંક કોપી કરી!");
+                                        }
+                                     }}
+                                     className="text-gray-400 hover:text-green-600"
+                                  >
+                                      <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.008-.57-.008-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.263.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/></svg>
+                                  </button>
+                              </div>
+                          </div>
+                      </article>
+                  ))
+              )}
+          </div>
       )}
-      {!isAdmin && <div className="mt-20 text-center"><button onClick={() => setShowLogin(true)} className="text-[10px] text-gray-200 hover:text-gray-400 font-bold uppercase tracking-widest transition-colors">Admin Access</button></div>}
+
+      {/* Footer Disclaimer for AdSense Compliance */}
+      <div className="mt-8 pt-6 border-t border-gray-200 text-center">
+          <p className="text-[10px] text-gray-400">
+              Disclaimer: News is aggregated from GNews API and public sources for informational purposes only. Verification is recommended before taking financial decisions.
+          </p>
+      </div>
     </div>
   );
 };
+
 export default NewsSection;

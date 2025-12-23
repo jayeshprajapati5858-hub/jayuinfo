@@ -14,7 +14,6 @@ import { PrivacyPolicy, TermsConditions, AboutUs, ContactUs } from './components
 import { beneficiaryData } from './data/beneficiaries';
 import { Beneficiary } from './types';
 import { pool } from './utils/db';
-import { GoogleGenAI, Type } from "@google/genai";
 
 const normalizeToSkeleton = (text: string) => {
   let normalized = text.toLowerCase();
@@ -97,28 +96,9 @@ const SearchPage = () => {
   );
 };
 
-// More Page Component
-const MorePage = () => {
-  const navigate = useNavigate();
-  return (
-    <div className="animate-fade-in space-y-8">
-       <div className="flex items-center gap-2 mb-1">
-         <button onClick={() => navigate('/')} className="p-2 -ml-2 rounded-full text-gray-500 hover:bg-gray-100 transition-colors">
-           <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7"></path></svg>
-         </button>
-         <h2 className="text-xl font-bold text-gray-800">અન્ય માહિતી</h2>
-       </div>
-       <EmergencyContacts />
-       <ImportantLinks />
-       <PhotoGallery />
-    </div>
-  );
-};
-
 const App: React.FC = () => {
   const [isSyncingNews, setIsSyncingNews] = useState(false);
   const [hasNewNotices, setHasNewNotices] = useState(false);
-  const [hasNewJobs, setHasNewJobs] = useState(false);
   const [tickerNotices, setTickerNotices] = useState<any[]>([]);
   const [homeNews, setHomeNews] = useState<any[]>([]);
   const [featuredNotice, setFeaturedNotice] = useState<any>(null);
@@ -137,7 +117,27 @@ const App: React.FC = () => {
     document.title = title;
   }, [location]);
 
-  // Helper to prevent frequent DB calls, but allow force override
+  // Initial Load from DB
+  useEffect(() => {
+    const loadInitialData = async () => {
+      try {
+        const newsRes = await pool.query('SELECT * FROM news ORDER BY id DESC LIMIT 5');
+        setHomeNews(newsRes.rows);
+
+        const noticeRes = await pool.query('SELECT * FROM notices ORDER BY id DESC LIMIT 5');
+        setTickerNotices(noticeRes.rows);
+        setHasNewNotices(noticeRes.rows.length > 0);
+        if (noticeRes.rows.length > 0) {
+           setFeaturedNotice(noticeRes.rows[0]);
+        }
+      } catch (e) {
+        console.error("DB Load Error", e);
+      }
+    };
+    loadInitialData();
+  }, []);
+
+  // Helper to prevent frequent API calls
   const shouldFetch = (key: string, minutes: number) => {
       const last = localStorage.getItem(key);
       if (!last) return true;
@@ -146,258 +146,124 @@ const App: React.FC = () => {
   };
 
   const triggerBackgroundSync = useCallback(async () => {
-      const todayStr = new Date().toLocaleDateString('gu-IN');
-      
-      // Check for global sync lock (1 hour cooldown after quota error)
-      const lastQuotaError = localStorage.getItem('lastQuotaError');
-      if (lastQuotaError && Date.now() - parseInt(lastQuotaError) < 60 * 60 * 1000) {
-          return;
-      }
-
-      // Check if we already have news for TODAY in the state/cache
-      const hasTodayNews = homeNews.some(n => n.date === todayStr);
-      
+      // 1. Check if sync is needed (every 4 hours to save API credits, but keep fresh)
+      if (!shouldFetch('lastNewsSync', 240)) return; 
       if (isSyncingNews) return;
-      if (hasTodayNews && !shouldFetch('lastNewsSync', 360)) return;
       
+      setIsSyncingNews(true);
+      const GNEWS_API_KEY = '017423a12b65fd9043317be57784cc28';
+
       try {
-          // Check DB first
-          let res;
-          try {
-             res = await pool.query('SELECT id, image FROM news WHERE date = $1', [todayStr]);
-          } catch (e) {
-             throw e;
-          }
+          // 2. Fetch Real-time News using GNews API
+          // Targeting Gujarat Agriculture specifically for village audience
+          const query = 'Gujarat Agriculture OR Khedut OR Gujarat Government Schemes';
+          const url = `https://gnews.io/api/v4/search?q=${encodeURIComponent(query)}&lang=gu&country=in&max=5&apikey=${GNEWS_API_KEY}`;
           
-          const needsGeneration = res.rows.length === 0;
-          const needsImages = res.rows.some((row: any) => !row.image);
-
-          if (needsGeneration || needsImages) {
-              setIsSyncingNews(true);
-              const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-              
-              let newsData = [];
-
-              if (needsGeneration) {
-                  // 1. Generate News Content if missing using GOOGLE SEARCH for real-time data
-                  const prompt = `
-                  Perform a Google Search to get the absolute latest news for: ${new Date().toLocaleDateString('en-GB')}.
-                  Topics: PM Kisan 19th installment, Gujarat Agriculture Market Rates, Latest Gujarat Govt Circulars.
-                  
-                  Generate 4 news articles in GUJARATI.
-                  IMPORTANT: In 'category' field, add source. E.g. "ખેતીવાડી (Source: TV9)".
-                  
-                  Return strictly JSON array: [{ "title": "...", "summary": "...", "content": "...", "category": "..." }]`;
-                  
-                  const aiRes = await ai.models.generateContent({
-                      model: "gemini-3-flash-preview",
-                      contents: prompt,
-                      config: { 
-                        tools: [{ googleSearch: {} }], // Use Search Grounding
-                        responseMimeType: "application/json",
-                        responseSchema: {
-                          type: Type.ARRAY,
-                          items: {
-                            type: Type.OBJECT,
-                            properties: {
-                              title: { type: Type.STRING },
-                              summary: { type: Type.STRING },
-                              content: { type: Type.STRING },
-                              category: { type: Type.STRING }
-                            },
-                            required: ["title", "summary", "content", "category"]
-                          }
-                        }
-                      }
-                  });
-                  newsData = JSON.parse(aiRes.text || "[]");
-              } else {
-                  const existingRes = await pool.query('SELECT id, title FROM news WHERE date = $1 AND (image IS NULL OR image = \'\')', [todayStr]);
-                  newsData = existingRes.rows;
-              }
-              
-              let index = 0;
-              for (const item of newsData) {
-                  if (!item.title) continue;
-
-                  let imageUrl = null;
-                  try {
-                    // Check image quota cooldown
-                    const lastImgError = localStorage.getItem('lastImgError');
-                    if (!lastImgError || Date.now() - parseInt(lastImgError) > 30 * 60 * 1000) {
-                        const imgRes = await ai.models.generateContent({
-                            model: 'gemini-2.5-flash-image',
-                            contents: { 
-                                parts: [{ 
-                                    text: `News photo for: ${item.title}. Rural Gujarat context. 16:9 ratio.` 
-                                }] 
-                            },
-                            config: { imageConfig: { aspectRatio: "16:9" } }
-                        });
-                        
-                        const parts = imgRes.candidates?.[0]?.content?.parts || [];
-                        for (const p of parts) {
-                            if (p.inlineData) { 
-                              imageUrl = `data:image/png;base64,${p.inlineData.data}`; 
-                              break; 
-                            }
-                        }
-                    }
-                  } catch(e: any) { 
-                      console.warn("Img Gen Fail", e); 
-                      if (e?.message?.includes('429') || e?.message?.includes('quota')) {
-                          localStorage.setItem('lastImgError', Date.now().toString());
-                      }
-                  }
-
-                  // Use fallback if generation failed
-                  if (!imageUrl) {
-                      imageUrl = fallbackImages[index % fallbackImages.length];
-                  }
-
-                  if (imageUrl) {
-                      if (needsGeneration) {
-                          const exists = await pool.query('SELECT id FROM news WHERE title = $1', [item.title]);
-                          if (exists.rows.length === 0) {
-                            await pool.query(
-                                `INSERT INTO news (title, summary, content, category, date, image) VALUES ($1, $2, $3, $4, $5, $6)`,
-                                [item.title, item.summary || '', item.content, item.category || 'સમાચાર', todayStr, imageUrl]
-                            );
-                          }
-                      } else if (item.id) {
-                          await pool.query('UPDATE news SET image = $1 WHERE id = $2', [imageUrl, item.id]);
-                      }
-                  }
-                  index++;
-              }
-              localStorage.setItem('lastNewsSync', Date.now().toString());
-              
-              const newsRes = await pool.query('SELECT * FROM news ORDER BY id DESC LIMIT 3');
-              setHomeNews(newsRes.rows);
+          let fetchedArticles = [];
+          
+          try {
+             const res = await fetch(url);
+             if (res.status === 403) {
+               console.warn("GNews API Limit Reached");
+               return; // Exit if quota exceeded
+             }
+             const data = await res.json();
+             
+             if (data.articles) {
+                 fetchedArticles = data.articles;
+             }
+          } catch (apiErr) {
+             console.warn("GNews API fetch failed, utilizing DB cache", apiErr);
           }
-      } catch (err: any) {
-          if (err?.message?.includes('quota') || err?.message?.includes('limit')) {
-             console.warn("BG Sync: DB Quota Exceeded");
-             localStorage.setItem('lastQuotaError', Date.now().toString());
-          } else {
-             console.error("BG Sync Failed:", err?.message || err);
+
+          // 3. Store in DB (Avoid Duplicates)
+          for (const article of fetchedArticles) {
+              const exists = await pool.query('SELECT id FROM news WHERE title = $1', [article.title]);
+              
+              if (exists.rows.length === 0) {
+                 // Determine category based on content
+                 let category = 'સમાચાર';
+                 const text = (article.title + article.description).toLowerCase();
+                 if (text.includes('kisan') || text.includes('agriculture') || text.includes('ખેડૂત')) category = 'ખેતીવાડી';
+                 else if (text.includes('yojana') || text.includes('scheme') || text.includes('સહાય')) category = 'યોજના';
+                 else if (text.includes('weather') || text.includes('rain') || text.includes('વરસાદ')) category = 'હવામાન';
+
+                 await pool.query(
+                    `INSERT INTO news (title, summary, content, category, date, image) VALUES ($1, $2, $3, $4, $5, $6)`,
+                    [
+                      article.title,
+                      article.description || article.title,
+                      article.content || article.description,
+                      category,
+                      new Date(article.publishedAt).toLocaleDateString('gu-IN'),
+                      article.image || fallbackImages[Math.floor(Math.random() * fallbackImages.length)]
+                    ]
+                 );
+              }
           }
+
+          localStorage.setItem('lastNewsSync', Date.now().toString());
+          
+          // 4. Refresh State
+          const newsRes = await pool.query('SELECT * FROM news ORDER BY id DESC LIMIT 5');
+          setHomeNews(newsRes.rows);
+
+      } catch (e) {
+          console.error("Sync Error", e);
       } finally {
           setIsSyncingNews(false);
       }
-  }, [isSyncingNews, homeNews]);
+  }, [isSyncingNews]);
 
-  const checkUpdates = useCallback(async () => {
-      // Check quota cooldown
-      const lastQuotaError = localStorage.getItem('lastQuotaError');
-      const todayStr = new Date().toLocaleDateString('gu-IN');
-      
-      if (lastQuotaError && Date.now() - parseInt(lastQuotaError) < 60 * 60 * 1000) {
-          console.log("Using static data due to recent quota error");
-          setTickerNotices([{ title: 'સિસ્ટમ અપડેટ: સર્વર મેન્ટેનન્સ ચાલુ છે.' }]);
-          setHomeNews([
-            { id: 101, title: "પીએમ કિસાન ૧૯મો હપ્તો: ખેડૂતો માટે મહત્વના સમાચાર", category: "ખેતીવાડી", image: fallbackImages[0], date: todayStr },
-            { id: 102, title: "જીરું અને વરિયાળીના ભાવમાં આજનો ઉછાળો", category: "બજાર ભાવ", image: fallbackImages[1], date: todayStr },
-            { id: 103, title: "સુકન્યા સમૃદ્ધિ યોજનામાં વ્યાજદરમાં વધારો", category: "યોજના", image: fallbackImages[2], date: todayStr }
-          ]);
-          return;
-      }
-
-      const oneDayMs = 24 * 60 * 60 * 1000;
-      const now = Date.now();
-      
-      try {
-          // Initialize schema
-          await pool.query(`CREATE TABLE IF NOT EXISTS notices (id SERIAL PRIMARY KEY, type TEXT, title TEXT, description TEXT, date_str TEXT, contact_person TEXT, mobile TEXT, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`);
-          await pool.query(`CREATE TABLE IF NOT EXISTS news (id SERIAL PRIMARY KEY, title TEXT, summary TEXT, content TEXT, category TEXT, date TEXT, image TEXT)`);
-          await pool.query(`CREATE TABLE IF NOT EXISTS jobs (id SERIAL PRIMARY KEY, category TEXT, title TEXT, details TEXT, wages TEXT, contact_name TEXT, mobile TEXT, date_str TEXT)`);
-
-          const noticeRes = await pool.query('SELECT * FROM notices ORDER BY id DESC LIMIT 5');
-          const notices = noticeRes.rows;
-          const activeNotices = notices.filter((n: any) => (now - new Date(n.created_at || Date.now()).getTime()) < oneDayMs);
-          setHasNewNotices(activeNotices.length > 0);
-          setTickerNotices(notices.length > 0 ? notices : []);
-          setFeaturedNotice(notices[0] || null);
-
-          const newsRes = await pool.query('SELECT * FROM news ORDER BY id DESC LIMIT 3');
-          setHomeNews(newsRes.rows);
-          
-          const jobRes = await pool.query('SELECT * FROM jobs ORDER BY id DESC LIMIT 1');
-          const recentJob = jobRes.rows.some((j: any) => (now - new Date(j.created_at || Date.now()).getTime()) < oneDayMs);
-          setHasNewJobs(recentJob);
-
-          triggerBackgroundSync();
-      } catch (err: any) {
-          if (err?.message?.includes('quota') || err?.message?.includes('limit')) {
-             console.warn("App: DB Quota Exceeded.");
-             localStorage.setItem('lastQuotaError', Date.now().toString());
-             setTickerNotices([{ title: 'સિસ્ટમ અપડેટ: સર્વર મેન્ટેનન્સ ચાલુ છે.' }]);
-             // Dynamic Date Fallback even in error
-             setHomeNews([
-                { id: 101, title: "પીએમ કિસાન ૧૯મો હપ્તો: ખેડૂતો માટે મહત્વના સમાચાર", category: "ખેતીવાડી", image: fallbackImages[0], date: todayStr },
-                { id: 102, title: "જીરું અને વરિયાળીના ભાવમાં આજનો ઉછાળો", category: "બજાર ભાવ", image: fallbackImages[1], date: todayStr },
-                { id: 103, title: "સુકન્યા સમૃદ્ધિ યોજનામાં વ્યાજદરમાં વધારો", category: "યોજના", image: fallbackImages[2], date: todayStr }
-             ]);
-          } else {
-             console.error("Fetch error:", err);
-             setTickerNotices([{ title: 'સિસ્ટમ અપડેટ: ડેટા લોડ થઈ શક્યો નથી.' }]);
-          }
-      }
+  // Trigger sync on mount
+  useEffect(() => {
+    triggerBackgroundSync();
   }, [triggerBackgroundSync]);
 
-  useEffect(() => {
-    checkUpdates();
-  }, [checkUpdates]);
-
-  const navItems = [
-    { id: 'home', path: '/', label: 'હોમ', icon: "M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" },
-    { id: 'search', path: '/search', label: 'શોધો', icon: "M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" },
-    { id: 'services', path: '/service/news', label: 'સેવાઓ', icon: "M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" },
-    { id: 'panchayat', path: '/panchayat', label: 'પંચાયત', icon: "M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" },
-    { id: 'more', path: '/more', label: 'અન્ય', icon: "M4 6h16M4 12h16M4 12h16M4 12h16M4 18h16" },
-  ];
-
-  const currentPath = location.pathname;
-  const isServicesActive = currentPath.startsWith('/service/');
-
   return (
-    <div className="min-h-screen flex flex-col bg-[#F9FAFB] font-sans text-gray-900 relative">
+    <>
       <Header />
       <div className="h-[60px]"></div>
       <NoticeTicker notices={tickerNotices} />
-      
-      <main className="flex-grow w-full max-w-2xl mx-auto px-4 py-6 pb-28">
+      <main className="max-w-2xl mx-auto px-4 py-6 pb-24">
         <Routes>
           <Route path="/" element={<HomeView homeNews={homeNews} featuredNotice={featuredNotice} hasNewNotices={hasNewNotices} fallbackImages={fallbackImages} />} />
           <Route path="/search" element={<SearchPage />} />
-          <Route path="/service/:type" element={<ServiceView />} />
           <Route path="/panchayat" element={<PanchayatInfo />} />
-          <Route path="/more" element={<MorePage />} />
+          <Route path="/service/:type" element={<ServiceView />} />
           <Route path="/about" element={<AboutUs />} />
           <Route path="/contact" element={<ContactUs />} />
           <Route path="/privacy" element={<PrivacyPolicy />} />
           <Route path="/terms" element={<TermsConditions />} />
         </Routes>
       </main>
-
-      <div className="fixed bottom-0 left-0 right-0 bg-white/90 backdrop-blur-xl border-t border-gray-100 z-50 shadow-[0_-8px_30px_rgb(0,0,0,0.04)]">
-        <div className="max-w-2xl mx-auto flex justify-around items-center pt-2 pb-safe">
-          {navItems.map((item) => {
-            const isActive = item.id === 'services' ? isServicesActive : currentPath === item.path;
-            
-            return (
-              <Link key={item.id} to={item.path} className="flex-1 py-3 relative flex flex-col items-center group">
-                {item.id === 'services' && (hasNewNotices || hasNewJobs) && <span className="absolute top-2 right-[30%] w-2 h-2 bg-red-500 rounded-full border-2 border-white shadow-sm"></span>}
-                <div className={`transition-all duration-300 rounded-2xl p-2 ${isActive ? 'text-emerald-600 bg-emerald-50 scale-110' : 'text-gray-400 group-active:scale-90'}`}>
-                    <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={isActive ? 2.5 : 2} d={item.icon} /></svg>
-                </div>
-                <span className={`text-[10px] font-black mt-1 transition-colors ${isActive ? 'text-emerald-700' : 'text-gray-400'}`}>{item.label}</span>
-              </Link>
-            );
-          })}
-        </div>
-      </div>
-    </div>
+      
+      {/* Bottom Nav for Mobile */}
+      <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 px-6 py-2 pb-5 z-50 md:hidden flex justify-between items-center shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
+        <Link to="/" className="flex flex-col items-center gap-1 text-emerald-600">
+          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path></svg>
+          <span className="text-[10px] font-bold">હોમ</span>
+        </Link>
+        <Link to="/service/news" className="flex flex-col items-center gap-1 text-gray-400 hover:text-emerald-600">
+          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z"></path></svg>
+          <span className="text-[10px] font-bold">સમાચાર</span>
+        </Link>
+        <Link to="/search" className="flex flex-col items-center gap-1 -mt-8">
+           <div className="bg-emerald-600 p-4 rounded-full text-white shadow-lg shadow-emerald-200">
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+           </div>
+           <span className="text-[10px] font-bold text-emerald-700">શોધો</span>
+        </Link>
+        <Link to="/service/marketplace" className="flex flex-col items-center gap-1 text-gray-400 hover:text-emerald-600">
+          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
+          <span className="text-[10px] font-bold">હાટ</span>
+        </Link>
+        <Link to="/panchayat" className="flex flex-col items-center gap-1 text-gray-400 hover:text-emerald-600">
+          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path></svg>
+          <span className="text-[10px] font-bold">પંચાયત</span>
+        </Link>
+      </nav>
+    </>
   );
 };
 
