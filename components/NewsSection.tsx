@@ -106,7 +106,7 @@ const NewsSection: React.FC = () => {
                       <p className="text-xs text-gray-400 mt-1">ડેટા સિંક થઇ રહ્યો છે, થોડીવાર પછી પ્રયાસ કરો.</p>
                   </div>
               ) : (
-                  filteredNews.map((article, index) => (
+                  filteredNews.map((article) => (
                       <article key={article.id} className="bg-white rounded-[2rem] shadow-sm border border-gray-100 overflow-hidden hover:shadow-xl transition-shadow duration-300 group">
                           
                           {/* Article Image */}
