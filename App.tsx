@@ -44,11 +44,13 @@ const normalizeToSkeleton = (text: string) => {
   return normalized;
 };
 
-// Fallback images in case AI generation fails
+// Robust Fallback images
 const fallbackImages = [
     "https://images.unsplash.com/photo-1625246333195-78d9c38ad449?auto=format&fit=crop&w=800&q=80",
     "https://images.unsplash.com/photo-1595113316349-9fa4eb24f884?auto=format&fit=crop&w=800&q=80",
-    "https://images.unsplash.com/photo-1500937386664-56d1dfef3854?auto=format&fit=crop&w=800&q=80"
+    "https://images.unsplash.com/photo-1500937386664-56d1dfef3854?auto=format&fit=crop&w=800&q=80",
+    "https://images.unsplash.com/photo-1589883661923-6476cf0ce7f1?auto=format&fit=crop&w=800&q=80",
+    "https://images.unsplash.com/photo-1605000797499-95a51c5269ae?auto=format&fit=crop&w=800&q=80"
 ];
 
 const NoticeTicker = ({ notices }: { notices: any[] }) => {
@@ -93,17 +95,22 @@ const App: React.FC = () => {
   };
 
   const triggerBackgroundSync = useCallback(async () => {
-      // Prevent sync if quota is exceeded or done recently
-      if (isSyncingNews || !shouldFetch('lastNewsSync', 360) || localStorage.getItem('db_quota_exceeded') === 'true') return;
+      // Check for global sync lock (1 hour cooldown after quota error)
+      const lastQuotaError = localStorage.getItem('lastQuotaError');
+      if (lastQuotaError && Date.now() - parseInt(lastQuotaError) < 60 * 60 * 1000) {
+          return;
+      }
+
+      if (isSyncingNews || !shouldFetch('lastNewsSync', 360)) return;
       
       const todayStr = new Date().toLocaleDateString('gu-IN');
       try {
-          // Check DB but catch quota error
+          // Check DB
           let res;
           try {
              res = await pool.query('SELECT id, image FROM news WHERE date = $1', [todayStr]);
           } catch (e) {
-             throw e; // Let main catch handle it
+             throw e;
           }
           
           const needsGeneration = res.rows.length === 0;
@@ -118,16 +125,10 @@ const App: React.FC = () => {
               if (needsGeneration) {
                   // 1. Generate News Content if missing
                   const prompt = `You are a Gujarati News Editor. Today is ${todayStr}.
-                  Generate 5 *FRESH* and *LATEST* news articles relevant to farmers in Gujarat.
-                  
-                  Topics to cover (Real-time simulation):
-                  1. Current Weather Forecast (Monsoon/Winter/Summer based on current month).
-                  2. Latest Market Prices (APMC) for Cotton, Groundnut, Jeera.
-                  3. New Government Subsidy or Scheme announcements (i-Khedut).
-                  4. General Gujarat state news relevant to villages.
-
-                  The content MUST be in Gujarati language.
-                  Return a JSON Array with: title, summary, content, category.`;
+                  Generate 4 *FRESH* and *LATEST* news articles relevant to farmers in Gujarat.
+                  Topics: Weather, APMC Prices, Government Schemes.
+                  The content MUST be in Gujarati.
+                  Return JSON Array with: title, summary, content, category.`;
                   
                   const aiRes = await ai.models.generateContent({
                       model: "gemini-3-flash-preview",
@@ -161,12 +162,14 @@ const App: React.FC = () => {
 
                   let imageUrl = null;
                   try {
-                    if (localStorage.getItem('img_quota_exceeded') !== 'true') {
+                    // Check image quota cooldown
+                    const lastImgError = localStorage.getItem('lastImgError');
+                    if (!lastImgError || Date.now() - parseInt(lastImgError) > 30 * 60 * 1000) {
                         const imgRes = await ai.models.generateContent({
                             model: 'gemini-2.5-flash-image',
                             contents: { 
                                 parts: [{ 
-                                    text: `A professional, realistic news photograph related to: ${item.title}. The setting should be rural Gujarat, India. High resolution, 16:9 ratio. No text overlays.` 
+                                    text: `News photo for: ${item.title}. Rural Gujarat context. 16:9 ratio.` 
                                 }] 
                             },
                             config: { imageConfig: { aspectRatio: "16:9" } }
@@ -183,7 +186,7 @@ const App: React.FC = () => {
                   } catch(e: any) { 
                       console.warn("Img Gen Fail", e); 
                       if (e?.message?.includes('429') || e?.message?.includes('quota')) {
-                          localStorage.setItem('img_quota_exceeded', 'true');
+                          localStorage.setItem('lastImgError', Date.now().toString());
                       }
                   }
 
@@ -215,7 +218,7 @@ const App: React.FC = () => {
       } catch (err: any) {
           if (err?.message?.includes('quota') || err?.message?.includes('limit')) {
              console.warn("BG Sync: DB Quota Exceeded");
-             localStorage.setItem('db_quota_exceeded', 'true');
+             localStorage.setItem('lastQuotaError', Date.now().toString());
           } else {
              console.error("BG Sync Failed:", err?.message || err);
           }
@@ -225,9 +228,11 @@ const App: React.FC = () => {
   }, [isSyncingNews]);
 
   const checkUpdates = useCallback(async () => {
-      // Check quota flag first
-      if (localStorage.getItem('db_quota_exceeded') === 'true') {
-          setTickerNotices([{ title: 'સિસ્ટમ અપડેટ: સર્વર મેન્ટેનન્સ ચાલુ છે. (Demo Mode)' }]);
+      // Check quota cooldown
+      const lastQuotaError = localStorage.getItem('lastQuotaError');
+      if (lastQuotaError && Date.now() - parseInt(lastQuotaError) < 60 * 60 * 1000) {
+          console.log("Using static data due to recent quota error");
+          setTickerNotices([{ title: 'સિસ્ટમ અપડેટ: સર્વર મેન્ટેનન્સ ચાલુ છે.' }]);
           setHomeNews([
             { id: 101, title: "ખેડૂતો માટે ખુશખબર: પાક વીમા યોજનામાં ફેરફાર", category: "ખેતીવાડી", image: fallbackImages[0] },
             { id: 102, title: "ધોરણ 10 અને 12 નું પરિણામ જાહેર", category: "શિક્ષણ", image: fallbackImages[1] },
@@ -240,7 +245,7 @@ const App: React.FC = () => {
       const now = Date.now();
       
       try {
-          // Initialize schema if missing to prevent "relation does not exist" errors
+          // Initialize schema
           await pool.query(`CREATE TABLE IF NOT EXISTS notices (id SERIAL PRIMARY KEY, type TEXT, title TEXT, description TEXT, date_str TEXT, contact_person TEXT, mobile TEXT, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`);
           await pool.query(`CREATE TABLE IF NOT EXISTS news (id SERIAL PRIMARY KEY, title TEXT, summary TEXT, content TEXT, category TEXT, date TEXT, image TEXT)`);
           await pool.query(`CREATE TABLE IF NOT EXISTS jobs (id SERIAL PRIMARY KEY, category TEXT, title TEXT, details TEXT, wages TEXT, contact_name TEXT, mobile TEXT, date_str TEXT)`);
@@ -262,9 +267,9 @@ const App: React.FC = () => {
           triggerBackgroundSync();
       } catch (err: any) {
           if (err?.message?.includes('quota') || err?.message?.includes('limit')) {
-             console.warn("App: DB Quota Exceeded. Switching to static.");
-             localStorage.setItem('db_quota_exceeded', 'true');
-             setTickerNotices([{ title: 'સિસ્ટમ અપડેટ: સર્વર મેન્ટેનન્સ ચાલુ છે. (Demo Mode)' }]);
+             console.warn("App: DB Quota Exceeded.");
+             localStorage.setItem('lastQuotaError', Date.now().toString());
+             setTickerNotices([{ title: 'સિસ્ટમ અપડેટ: સર્વર મેન્ટેનન્સ ચાલુ છે.' }]);
              setHomeNews([
                 { id: 101, title: "ખેડૂતો માટે ખુશખબર: પાક વીમા યોજનામાં ફેરફાર", category: "ખેતીવાડી", image: fallbackImages[0] },
                 { id: 102, title: "ધોરણ 10 અને 12 નું પરિણામ જાહેર", category: "શિક્ષણ", image: fallbackImages[1] },
@@ -272,8 +277,7 @@ const App: React.FC = () => {
              ]);
           } else {
              console.error("Fetch error:", err);
-             // Fallback for general errors (e.g. relation does not exist handled above by creation, but other errors)
-             setTickerNotices([{ title: 'સિસ્ટમ અપડેટ: ડેટા લોડ થઈ શક્યો નથી. કૃપા કરીને થોડીવાર પછી પ્રયત્ન કરો.' }]);
+             setTickerNotices([{ title: 'સિસ્ટમ અપડેટ: ડેટા લોડ થઈ શક્યો નથી.' }]);
           }
       }
   }, [triggerBackgroundSync]);
