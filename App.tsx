@@ -1,13 +1,9 @@
-
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { Routes, Route, Link, useLocation, useNavigate } from 'react-router-dom';
 import Header from './components/Header';
 import SearchBar from './components/SearchBar';
 import { BeneficiaryList } from './components/BeneficiaryList';
 import PanchayatInfo from './components/PanchayatInfo';
-import ImportantLinks from './components/ImportantLinks';
-import EmergencyContacts from './components/EmergencyContacts';
-import PhotoGallery from './components/PhotoGallery';
 import HomeView from './components/HomeView';
 import ServiceView from './components/ServiceView';
 import { PrivacyPolicy, TermsConditions, AboutUs, ContactUs } from './components/LegalPages';

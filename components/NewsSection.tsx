@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { pool } from '../utils/db';
 
@@ -149,7 +148,7 @@ const NewsSection: React.FC = () => {
                                   {article.summary}
                               </p>
 
-                              {/* AdSense Friendly "Read More" simulation (Expands content in UI logic if needed, currently linking to nothing to keep it SPA) */}
+                              {/* AdSense Friendly "Read More" simulation */}
                               <div className="pt-4 border-t border-gray-100 flex justify-between items-center">
                                   <button className="text-indigo-600 text-xs font-black uppercase tracking-wider flex items-center gap-1 group/btn">
                                       સંપૂર્ણ સમાચાર વાંચો 
