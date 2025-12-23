@@ -11,57 +11,43 @@ interface Article {
   content: string;
   category: string;
   image?: string;
+  sourceUrl?: string;
 }
 
-// Helper to get dynamic date (Today/Yesterday) for fallback data
+// Helper to get dynamic date
 const getDynamicDate = (daysAgo: number = 0) => {
   const d = new Date();
   d.setDate(d.getDate() - daysAgo);
   return d.toLocaleDateString('gu-IN', { day: 'numeric', month: 'long', year: 'numeric' });
 };
 
-// Extended Fallback images library for variety
 const fallbackImages = [
-    "https://images.unsplash.com/photo-1625246333195-78d9c38ad449?auto=format&fit=crop&w=800&q=80", // Farmer Field
-    "https://images.unsplash.com/photo-1595113316349-9fa4eb24f884?auto=format&fit=crop&w=800&q=80", // Indian Village Street
-    "https://images.unsplash.com/photo-1500937386664-56d1dfef3854?auto=format&fit=crop&w=800&q=80", // Green Field
-    "https://images.unsplash.com/photo-1530933449625-7f58d9b32564?auto=format&fit=crop&w=800&q=80", // Rural Life
-    "https://images.unsplash.com/photo-1605000797499-95a51c5269ae?auto=format&fit=crop&w=800&q=80", // Farming Crops
-    "https://images.unsplash.com/photo-1586771107445-d3ca888129ff?auto=format&fit=crop&w=800&q=80", // Tech Agriculture
-    "https://images.unsplash.com/photo-1592985651348-185e50523097?auto=format&fit=crop&w=800&q=80", // Indian Woman Farmer
-    "https://images.unsplash.com/photo-1561085203-d6874479bd72?auto=format&fit=crop&w=800&q=80", // Tractor
-    "https://images.unsplash.com/photo-1597816027376-74944fb0b343?auto=format&fit=crop&w=800&q=80", // Monsoon Clouds
-    "https://images.unsplash.com/photo-1589883661923-6476cf0ce7f1?auto=format&fit=crop&w=800&q=80"  // Market Yard
+    "https://images.unsplash.com/photo-1625246333195-78d9c38ad449?auto=format&fit=crop&w=800&q=80", 
+    "https://images.unsplash.com/photo-1595113316349-9fa4eb24f884?auto=format&fit=crop&w=800&q=80",
+    "https://images.unsplash.com/photo-1500937386664-56d1dfef3854?auto=format&fit=crop&w=800&q=80", 
+    "https://images.unsplash.com/photo-1530933449625-7f58d9b32564?auto=format&fit=crop&w=800&q=80",
+    "https://images.unsplash.com/photo-1605000797499-95a51c5269ae?auto=format&fit=crop&w=800&q=80"
 ];
 
-// Fallback news now uses dynamic dates
+// Fallback news updated to be generic but relevant if API fails
 const fallbackNews: Article[] = [
     {
         id: 101,
-        title: "ખેડૂતો માટે ખુશખબર: પાક વીમા યોજનામાં નવા ફેરફાર",
-        date: getDynamicDate(0), // Today
-        summary: "રાજ્ય સરકાર દ્વારા ખેડૂતો માટે નવી જાહેરાત કરવામાં આવી છે. હવે પાક નુકસાનનું વળતર ઝડપથી મળશે.",
-        content: "ગાંધીનગર: રાજ્યના કૃષિ મંત્રી રાઘવજી પટેલે ખેડૂતો માટે મહત્વનો નિર્ણય લીધો છે. હવેથી પાક નુકસાન સર્વે 7 દિવસમાં પૂર્ણ કરી સહાય ચૂકવવામાં આવશે. આ નિર્ણયથી ખેડૂતોને મોટી રાહત મળશે.",
+        title: "પીએમ કિસાન ૧૯મો હપ્તો: ખેડૂતો માટે મહત્વના સમાચાર",
+        date: getDynamicDate(0),
+        summary: "પીએમ કિસાન સન્માન નિધિના ૧૯મા હપ્તાની તારીખ ટૂંક સમયમાં જાહેર થશે. e-KYC કરાવવું ફરજિયાત.",
+        content: "કેન્દ્ર સરકાર દ્વારા ખેડૂતોને આર્થિક મદદ કરવા માટે પીએમ કિસાન યોજના ચલાવવામાં આવે છે. ૧૮મો હપ્તો મળી ચૂક્યો છે અને હવે ૧૯મા હપ્તાની રાહ જોવાઈ રહી છે. ફેબ્રુઆરી ૨૦૨૫ ના અંત સુધીમાં અથવા માર્ચની શરૂઆતમાં આ હપ્તો જમા થવાની શક્યતા છે. જે ખેડૂતોનું e-KYC બાકી હોય તેમણે તાત્કાલિક કરાવી લેવું.",
         category: "ખેતીવાડી",
         image: fallbackImages[0]
     },
     {
         id: 102,
-        title: "જીરું અને વરિયાળીના ભાવમાં આજનો ઉછાળો",
-        date: getDynamicDate(0), // Today
-        summary: "આજના માર્કેટ યાર્ડ ભાવ મુજબ જીરું અને વરિયાળીના ભાવમાં સુધારો જોવા મળ્યો છે.",
-        content: "આજે ઊંઝા અને ધ્રાંગધ્રા માર્કેટ યાર્ડમાં જીરુંના ભાવમાં મણે ૫૦ રૂપિયાનો વધારો જોવા મળ્યો છે. નિકાસની માંગ નીકળતા ભાવમાં તેજી છે.",
+        title: "આજના બજાર ભાવ: કપાસ અને મગફળીમાં હલચલ",
+        date: getDynamicDate(0),
+        summary: "સૌરાષ્ટ્રના યાર્ડમાં આજે કપાસ અને મગફળીની આવક સામાન્ય રહી. જાણો આજના ભાવ.",
+        content: "આજે રાજકોટ, ગોંડલ અને ઊંઝા માર્કેટ યાર્ડમાં મિશ્ર વાતાવરણ જોવા મળ્યું હતું. કપાસના ભાવમાં મણે ૧૦-૨૦ રૂપિયાનો સુધારો જોવા મળ્યો છે. જીરુંની આવક શરૂ થવાની તૈયારીમાં છે.",
         category: "બજાર ભાવ",
-        image: fallbackImages[5]
-    },
-    {
-        id: 103,
-        title: "સુકન્યા સમૃદ્ધિ યોજનામાં વ્યાજદરમાં વધારો",
-        date: getDynamicDate(1), // Yesterday
-        summary: "દીકરીઓના ભવિષ્ય માટે સરકારની સુકન્યા યોજનામાં વ્યાજદરમાં વધારો કરવામાં આવ્યો છે.",
-        content: "કેન્દ્ર સરકારે નાની બચત યોજનાઓના વ્યાજદરમાં ફેરફાર કર્યો છે. સુકન્યા સમૃદ્ધિ યોજનામાં હવે ૮.૨% વ્યાજ મળશે.",
-        category: "યોજના",
-        image: fallbackImages[2]
+        image: fallbackImages[4]
     }
 ];
 
@@ -76,10 +62,10 @@ const NewsSection: React.FC = () => {
 
   const todayStr = new Date().toLocaleDateString('gu-IN');
 
+  // Generate image using Gemini
   const generateImageForNews = async (title: string, index: number): Promise<string> => {
-    // Check if we are in a cooldown period for images
     const lastImgError = localStorage.getItem('lastImgError');
-    if (lastImgError && Date.now() - parseInt(lastImgError) < 30 * 60 * 1000) { // 30 min cooldown
+    if (lastImgError && Date.now() - parseInt(lastImgError) < 30 * 60 * 1000) {
         return fallbackImages[index % fallbackImages.length];
     }
 
@@ -88,17 +74,9 @@ const NewsSection: React.FC = () => {
       const response = await ai.models.generateContent({
         model: 'gemini-2.5-flash-image',
         contents: {
-          parts: [
-            {
-              text: `A realistic, high-quality news photo for an article titled: "${title}". Context: Rural India, Gujarat, Agriculture, Villages. No text in image. 16:9 aspect ratio.`,
-            },
-          ],
+          parts: [{ text: `A realistic news photo for: "${title}". Context: Rural India, Gujarat agriculture. 16:9 aspect ratio.` }],
         },
-        config: { 
-            imageConfig: { 
-                aspectRatio: "16:9"
-            } 
-        },
+        config: { imageConfig: { aspectRatio: "16:9" } },
       });
 
       const parts = response.candidates?.[0]?.content?.parts || [];
@@ -109,8 +87,6 @@ const NewsSection: React.FC = () => {
       }
       return fallbackImages[index % fallbackImages.length];
     } catch (err: any) { 
-        console.warn("Image Gen Error:", err);
-        // If quota exceeded, set timestamp to avoid retrying immediately
         if (err?.message?.includes('429') || err?.message?.includes('quota')) {
             localStorage.setItem('lastImgError', Date.now().toString());
         }
@@ -121,34 +97,42 @@ const NewsSection: React.FC = () => {
   const autoSyncDailyNews = useCallback(async (force = false) => {
     if (syncing) return;
 
-    // Check quota cooldown (1 hour), unless forced
-    const lastQuotaError = localStorage.getItem('lastQuotaError');
-    if (!force && lastQuotaError && Date.now() - parseInt(lastQuotaError) < 60 * 60 * 1000) {
-        console.log("Skipping sync due to recent quota error.");
-        return;
+    // We allow force refresh even if quota was hit recently, because user explicitly asked for it
+    if (!force) {
+        const lastQuotaError = localStorage.getItem('lastQuotaError');
+        if (lastQuotaError && Date.now() - parseInt(lastQuotaError) < 60 * 60 * 1000) return;
     }
 
     setSyncing(true);
     try {
       const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
       
-      const prompt = `Act as a Gujarati News Reporter for a rural village app. 
-      Today is ${todayStr}.
-      Generate 4 *FRESH*, *UNIQUE* and *LATEST* news articles relevant to Gujarat villagers/farmers.
+      // Explicitly asking for REAL TIME search
+      const prompt = `
+      Perform a Google Search to find the absolute LATEST news for farmers in Gujarat for today: ${new Date().toLocaleDateString('en-GB')}.
       
-      MANDATORY TOPICS (Mix these):
-      1. Today's Weather Alert (Heat/Rain/Cold based on current actual date).
-      2. Latest Agriculture Market Price trends (Cotton, Jeera, Groundnut) - Make sure prices are realistic for ${todayStr}.
-      3. Government Scheme Update.
-      4. Local Gujarat News.
+      Search specifically for:
+      1. "PM Kisan 19th installment date 2025 status"
+      2. "Today's APMC market rates Gujarat ${new Date().toLocaleDateString('en-GB')}"
+      3. "Gujarat Government Agriculture Schemes notifications February 2025"
+      4. "Weather forecast Gujarat today"
 
-      Output JSON format: [{ "title": "...", "summary": "...", "content": "...", "category": "..." }]
-      Language: Gujarati only. Content length: 120 words per article. Make it sound very recent.`;
+      Based on the search results, generate 4 news articles in GUJARATI language.
+      
+      Format strictly as JSON array:
+      [{
+        "title": "Headline in Gujarati",
+        "summary": "Short summary in Gujarati",
+        "content": "Detailed report (min 60 words) in Gujarati",
+        "category": "Category (e.g. ખેતીવાડી, યોજના, સમાચાર)"
+      }]
+      `;
 
       const response = await ai.models.generateContent({
         model: "gemini-3-flash-preview",
         contents: prompt,
         config: {
+          tools: [{ googleSearch: {} }], // ENABLE GOOGLE SEARCH GROUNDING
           responseMimeType: "application/json",
           responseSchema: {
             type: Type.ARRAY,
@@ -169,12 +153,17 @@ const NewsSection: React.FC = () => {
       const parsedNews = JSON.parse(response.text || "[]");
 
       if (parsedNews.length > 0) {
+        // Clear old news for today to ensure freshness if forced
+        if (force) {
+             // Optional: strategy to keep history or wipe. 
+             // For now, we append/update.
+        }
+
         let index = 0;
         for (const item of parsedNews) {
           if (!item.title || !item.content) continue;
           
-          // Check if duplicate for today
-          const existing = await pool.query('SELECT id, image FROM news WHERE title = $1 AND date = $2', [item.title, todayStr]);
+          const existing = await pool.query('SELECT id, image FROM news WHERE title = $1', [item.title]);
           
           if (existing.rows.length === 0) {
             const imageUrl = await generateImageForNews(item.title, index);
@@ -182,22 +171,16 @@ const NewsSection: React.FC = () => {
               `INSERT INTO news (title, summary, content, category, date, image) VALUES ($1, $2, $3, $4, $5, $6)`,
               [item.title, item.summary || '', item.content, item.category || 'સમાચાર', todayStr, imageUrl]
             );
-          } else if (!existing.rows[0].image) {
-            // Retry image if missing
-            const imageUrl = await generateImageForNews(item.title, index);
-            if (imageUrl) {
-                await pool.query(`UPDATE news SET image = $1 WHERE id = $2`, [imageUrl, existing.rows[0].id]);
-            }
           }
           index++;
         }
-        // Refresh list
+        
         const refresh = await pool.query('SELECT * FROM news ORDER BY id DESC LIMIT 20');
         setNewsList(refresh.rows);
       }
     } catch (err: any) {
       console.error("Auto-Sync Failed:", err);
-      if (err?.message?.includes('quota') || err?.message?.includes('limit') || err?.message?.includes('429')) {
+      if (err?.message?.includes('quota') || err?.message?.includes('429')) {
           localStorage.setItem('lastQuotaError', Date.now().toString());
       }
     } finally {
@@ -214,11 +197,11 @@ const NewsSection: React.FC = () => {
       
       if (data.length > 0) {
           setNewsList(data);
-          // Check if we have news for TODAY. If not, trigger sync.
-          const todaysNews = data.filter((a: any) => a.date === todayStr);
-          if (todaysNews.length === 0) { 
-              console.log("No news for today found in DB, syncing...");
-              autoSyncDailyNews(true); 
+          // Check if we have data for TODAY using exact string match
+          const hasToday = data.some((n: any) => n.date === todayStr);
+          if (!hasToday) {
+             console.log("Date mismatch or old data. Syncing fresh news...");
+             autoSyncDailyNews(true);
           }
       } else {
           setNewsList(fallbackNews);
@@ -241,12 +224,13 @@ const NewsSection: React.FC = () => {
              <div className="inline-block bg-emerald-50 px-4 py-1.5 rounded-full border border-emerald-100">
                 <span className="text-[10px] font-black text-emerald-700 uppercase tracking-widest flex items-center gap-2">
                     <span className={`w-2 h-2 rounded-full ${syncing ? 'bg-orange-500 animate-ping' : 'bg-emerald-500'}`}></span>
-                    {syncing ? 'સમાચાર અપડેટ થઈ રહ્યા છે...' : `આજની તારીખ: ${todayStr}`}
+                    {syncing ? 'ઇન્ટરનેટ પરથી માહિતી લેવાઈ રહી છે...' : `આજની તારીખ: ${todayStr}`}
                 </span>
              </div>
              {!syncing && (
-                <button onClick={() => autoSyncDailyNews(true)} className="text-[10px] text-emerald-600 font-bold underline cursor-pointer hover:text-emerald-800">
-                   🔄 Refresh Latest News
+                <button onClick={() => autoSyncDailyNews(true)} className="text-[10px] text-emerald-600 font-bold underline cursor-pointer hover:text-emerald-800 flex items-center gap-1">
+                   <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+                   તાજા સમાચાર રિફ્રેશ કરો (Live Search)
                 </button>
              )}
           </div>

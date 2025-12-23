@@ -43,7 +43,7 @@ const fallbackImages = [
 
 const NoticeTicker = ({ notices }: { notices: any[] }) => {
   const defaultNotices = [
-    { title: 'કૃષિ સહાય પેકેજની યાદી જાહેર. ખેડૂતોએ તાત્કાલિક બેંક DBT ચાલુ કરાવવું.' },
+    { title: 'પીએમ કિસાન યોજના (PM Kisan) 19મા હપ્તાની અપડેટ. e-KYC કરાવી લેવું.' },
     { title: 'ગ્રામ પંચાયતની વેરા વસૂલાત ઝુંબેશ ચાલુ છે.' }
   ];
   const displayData = notices && notices.length > 0 ? notices : defaultNotices;
@@ -154,8 +154,7 @@ const App: React.FC = () => {
           return;
       }
 
-      // Check if we already have news for TODAY in the state/cache, if so, respect timeout
-      // BUT if we don't have today's news in the homeNews state, we ignore the timeout
+      // Check if we already have news for TODAY in the state/cache
       const hasTodayNews = homeNews.some(n => n.date === todayStr);
       
       if (isSyncingNews) return;
@@ -180,17 +179,19 @@ const App: React.FC = () => {
               let newsData = [];
 
               if (needsGeneration) {
-                  // 1. Generate News Content if missing
-                  const prompt = `You are a Gujarati News Editor. Today is ${todayStr}.
-                  Generate 4 *FRESH*, *UNIQUE* and *LATEST* news articles relevant to farmers in Gujarat.
-                  Topics: Weather (Real-time), APMC Prices (Current), Government Schemes (New Updates).
-                  The content MUST be in Gujarati.
-                  Return JSON Array with: title, summary, content, category.`;
+                  // 1. Generate News Content if missing using GOOGLE SEARCH for real-time data
+                  const prompt = `
+                  Perform a Google Search to get the absolute latest news for: ${new Date().toLocaleDateString('en-GB')}.
+                  Topics: PM Kisan 19th installment, Gujarat Agriculture Market Rates, Latest Gujarat Govt Circulars.
+                  
+                  Generate 4 news articles in GUJARATI.
+                  Return strictly JSON array: [{ "title": "...", "summary": "...", "content": "...", "category": "..." }]`;
                   
                   const aiRes = await ai.models.generateContent({
                       model: "gemini-3-flash-preview",
                       contents: prompt,
                       config: { 
+                        tools: [{ googleSearch: {} }], // Use Search Grounding
                         responseMimeType: "application/json",
                         responseSchema: {
                           type: Type.ARRAY,
@@ -293,7 +294,7 @@ const App: React.FC = () => {
           console.log("Using static data due to recent quota error");
           setTickerNotices([{ title: 'સિસ્ટમ અપડેટ: સર્વર મેન્ટેનન્સ ચાલુ છે.' }]);
           setHomeNews([
-            { id: 101, title: "ખેડૂતો માટે ખુશખબર: પાક વીમા યોજનામાં ફેરફાર", category: "ખેતીવાડી", image: fallbackImages[0], date: todayStr },
+            { id: 101, title: "પીએમ કિસાન ૧૯મો હપ્તો: ખેડૂતો માટે મહત્વના સમાચાર", category: "ખેતીવાડી", image: fallbackImages[0], date: todayStr },
             { id: 102, title: "જીરું અને વરિયાળીના ભાવમાં આજનો ઉછાળો", category: "બજાર ભાવ", image: fallbackImages[1], date: todayStr },
             { id: 103, title: "સુકન્યા સમૃદ્ધિ યોજનામાં વ્યાજદરમાં વધારો", category: "યોજના", image: fallbackImages[2], date: todayStr }
           ]);
@@ -331,7 +332,7 @@ const App: React.FC = () => {
              setTickerNotices([{ title: 'સિસ્ટમ અપડેટ: સર્વર મેન્ટેનન્સ ચાલુ છે.' }]);
              // Dynamic Date Fallback even in error
              setHomeNews([
-                { id: 101, title: "ખેડૂતો માટે ખુશખબર: પાક વીમા યોજનામાં ફેરફાર", category: "ખેતીવાડી", image: fallbackImages[0], date: todayStr },
+                { id: 101, title: "પીએમ કિસાન ૧૯મો હપ્તો: ખેડૂતો માટે મહત્વના સમાચાર", category: "ખેતીવાડી", image: fallbackImages[0], date: todayStr },
                 { id: 102, title: "જીરું અને વરિયાળીના ભાવમાં આજનો ઉછાળો", category: "બજાર ભાવ", image: fallbackImages[1], date: todayStr },
                 { id: 103, title: "સુકન્યા સમૃદ્ધિ યોજનામાં વ્યાજદરમાં વધારો", category: "યોજના", image: fallbackImages[2], date: todayStr }
              ]);
