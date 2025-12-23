@@ -137,7 +137,7 @@ const App: React.FC = () => {
     document.title = title;
   }, [location]);
 
-  // Helper to prevent frequent DB calls
+  // Helper to prevent frequent DB calls, but allow force override
   const shouldFetch = (key: string, minutes: number) => {
       const last = localStorage.getItem(key);
       if (!last) return true;
@@ -146,17 +146,23 @@ const App: React.FC = () => {
   };
 
   const triggerBackgroundSync = useCallback(async () => {
+      const todayStr = new Date().toLocaleDateString('gu-IN');
+      
       // Check for global sync lock (1 hour cooldown after quota error)
       const lastQuotaError = localStorage.getItem('lastQuotaError');
       if (lastQuotaError && Date.now() - parseInt(lastQuotaError) < 60 * 60 * 1000) {
           return;
       }
 
-      if (isSyncingNews || !shouldFetch('lastNewsSync', 360)) return;
+      // Check if we already have news for TODAY in the state/cache, if so, respect timeout
+      // BUT if we don't have today's news in the homeNews state, we ignore the timeout
+      const hasTodayNews = homeNews.some(n => n.date === todayStr);
       
-      const todayStr = new Date().toLocaleDateString('gu-IN');
+      if (isSyncingNews) return;
+      if (hasTodayNews && !shouldFetch('lastNewsSync', 360)) return;
+      
       try {
-          // Check DB
+          // Check DB first
           let res;
           try {
              res = await pool.query('SELECT id, image FROM news WHERE date = $1', [todayStr]);
@@ -176,8 +182,8 @@ const App: React.FC = () => {
               if (needsGeneration) {
                   // 1. Generate News Content if missing
                   const prompt = `You are a Gujarati News Editor. Today is ${todayStr}.
-                  Generate 4 *FRESH* and *LATEST* news articles relevant to farmers in Gujarat.
-                  Topics: Weather, APMC Prices, Government Schemes.
+                  Generate 4 *FRESH*, *UNIQUE* and *LATEST* news articles relevant to farmers in Gujarat.
+                  Topics: Weather (Real-time), APMC Prices (Current), Government Schemes (New Updates).
                   The content MUST be in Gujarati.
                   Return JSON Array with: title, summary, content, category.`;
                   
@@ -276,18 +282,20 @@ const App: React.FC = () => {
       } finally {
           setIsSyncingNews(false);
       }
-  }, [isSyncingNews]);
+  }, [isSyncingNews, homeNews]);
 
   const checkUpdates = useCallback(async () => {
       // Check quota cooldown
       const lastQuotaError = localStorage.getItem('lastQuotaError');
+      const todayStr = new Date().toLocaleDateString('gu-IN');
+      
       if (lastQuotaError && Date.now() - parseInt(lastQuotaError) < 60 * 60 * 1000) {
           console.log("Using static data due to recent quota error");
           setTickerNotices([{ title: 'સિસ્ટમ અપડેટ: સર્વર મેન્ટેનન્સ ચાલુ છે.' }]);
           setHomeNews([
-            { id: 101, title: "ખેડૂતો માટે ખુશખબર: પાક વીમા યોજનામાં ફેરફાર", category: "ખેતીવાડી", image: fallbackImages[0] },
-            { id: 102, title: "ધોરણ 10 અને 12 નું પરિણામ જાહેર", category: "શિક્ષણ", image: fallbackImages[1] },
-            { id: 103, title: "સુકન્યા સમૃદ્ધિ યોજનામાં વ્યાજદરમાં વધારો", category: "યોજના", image: fallbackImages[2] }
+            { id: 101, title: "ખેડૂતો માટે ખુશખબર: પાક વીમા યોજનામાં ફેરફાર", category: "ખેતીવાડી", image: fallbackImages[0], date: todayStr },
+            { id: 102, title: "જીરું અને વરિયાળીના ભાવમાં આજનો ઉછાળો", category: "બજાર ભાવ", image: fallbackImages[1], date: todayStr },
+            { id: 103, title: "સુકન્યા સમૃદ્ધિ યોજનામાં વ્યાજદરમાં વધારો", category: "યોજના", image: fallbackImages[2], date: todayStr }
           ]);
           return;
       }
@@ -321,10 +329,11 @@ const App: React.FC = () => {
              console.warn("App: DB Quota Exceeded.");
              localStorage.setItem('lastQuotaError', Date.now().toString());
              setTickerNotices([{ title: 'સિસ્ટમ અપડેટ: સર્વર મેન્ટેનન્સ ચાલુ છે.' }]);
+             // Dynamic Date Fallback even in error
              setHomeNews([
-                { id: 101, title: "ખેડૂતો માટે ખુશખબર: પાક વીમા યોજનામાં ફેરફાર", category: "ખેતીવાડી", image: fallbackImages[0] },
-                { id: 102, title: "ધોરણ 10 અને 12 નું પરિણામ જાહેર", category: "શિક્ષણ", image: fallbackImages[1] },
-                { id: 103, title: "સુકન્યા સમૃદ્ધિ યોજનામાં વ્યાજદરમાં વધારો", category: "યોજના", image: fallbackImages[2] }
+                { id: 101, title: "ખેડૂતો માટે ખુશખબર: પાક વીમા યોજનામાં ફેરફાર", category: "ખેતીવાડી", image: fallbackImages[0], date: todayStr },
+                { id: 102, title: "જીરું અને વરિયાળીના ભાવમાં આજનો ઉછાળો", category: "બજાર ભાવ", image: fallbackImages[1], date: todayStr },
+                { id: 103, title: "સુકન્યા સમૃદ્ધિ યોજનામાં વ્યાજદરમાં વધારો", category: "યોજના", image: fallbackImages[2], date: todayStr }
              ]);
           } else {
              console.error("Fetch error:", err);

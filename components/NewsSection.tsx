@@ -13,6 +13,13 @@ interface Article {
   image?: string;
 }
 
+// Helper to get dynamic date (Today/Yesterday) for fallback data
+const getDynamicDate = (daysAgo: number = 0) => {
+  const d = new Date();
+  d.setDate(d.getDate() - daysAgo);
+  return d.toLocaleDateString('gu-IN', { day: 'numeric', month: 'long', year: 'numeric' });
+};
+
 // Extended Fallback images library for variety
 const fallbackImages = [
     "https://images.unsplash.com/photo-1625246333195-78d9c38ad449?auto=format&fit=crop&w=800&q=80", // Farmer Field
@@ -27,24 +34,34 @@ const fallbackImages = [
     "https://images.unsplash.com/photo-1589883661923-6476cf0ce7f1?auto=format&fit=crop&w=800&q=80"  // Market Yard
 ];
 
+// Fallback news now uses dynamic dates
 const fallbackNews: Article[] = [
     {
         id: 101,
-        title: "ખેડૂતો માટે ખુશખબર: પાક વીમા યોજનામાં ફેરફાર",
-        date: "20 May 2024",
+        title: "ખેડૂતો માટે ખુશખબર: પાક વીમા યોજનામાં નવા ફેરફાર",
+        date: getDynamicDate(0), // Today
         summary: "રાજ્ય સરકાર દ્વારા ખેડૂતો માટે નવી જાહેરાત કરવામાં આવી છે. હવે પાક નુકસાનનું વળતર ઝડપથી મળશે.",
-        content: "ગાંધીનગર: રાજ્યના કૃષિ મંત્રી રાઘવજી પટેલે ખેડૂતો માટે મહત્વનો નિર્ણય લીધો છે. હવેથી પાક નુકસાન સર્વે 7 દિવસમાં પૂર્ણ કરી સહાય ચૂકવવામાં આવશે.",
+        content: "ગાંધીનગર: રાજ્યના કૃષિ મંત્રી રાઘવજી પટેલે ખેડૂતો માટે મહત્વનો નિર્ણય લીધો છે. હવેથી પાક નુકસાન સર્વે 7 દિવસમાં પૂર્ણ કરી સહાય ચૂકવવામાં આવશે. આ નિર્ણયથી ખેડૂતોને મોટી રાહત મળશે.",
         category: "ખેતીવાડી",
         image: fallbackImages[0]
     },
     {
         id: 102,
-        title: "ધોરણ 10 અને 12 નું પરિણામ જાહેર",
-        date: "20 May 2024",
-        summary: "ગુજરાત બોર્ડ દ્વારા ધોરણ ૧૦ અને ૧૨ ના પરિણામો વેબસાઈટ પર મુકાયા.",
-        content: "ગુજરાત માધ્યમિક અને ઉચ્ચતર માધ્યમિક શિક્ષણ બોર્ડ દ્વારા માર્ચ-૨૦૨૪ માં લેવાયેલી પરીક્ષાનું પરિણામ જાહેર કરવામાં આવ્યું છે.",
-        category: "શિક્ષણ",
-        image: fallbackImages[1]
+        title: "જીરું અને વરિયાળીના ભાવમાં આજનો ઉછાળો",
+        date: getDynamicDate(0), // Today
+        summary: "આજના માર્કેટ યાર્ડ ભાવ મુજબ જીરું અને વરિયાળીના ભાવમાં સુધારો જોવા મળ્યો છે.",
+        content: "આજે ઊંઝા અને ધ્રાંગધ્રા માર્કેટ યાર્ડમાં જીરુંના ભાવમાં મણે ૫૦ રૂપિયાનો વધારો જોવા મળ્યો છે. નિકાસની માંગ નીકળતા ભાવમાં તેજી છે.",
+        category: "બજાર ભાવ",
+        image: fallbackImages[5]
+    },
+    {
+        id: 103,
+        title: "સુકન્યા સમૃદ્ધિ યોજનામાં વ્યાજદરમાં વધારો",
+        date: getDynamicDate(1), // Yesterday
+        summary: "દીકરીઓના ભવિષ્ય માટે સરકારની સુકન્યા યોજનામાં વ્યાજદરમાં વધારો કરવામાં આવ્યો છે.",
+        content: "કેન્દ્ર સરકારે નાની બચત યોજનાઓના વ્યાજદરમાં ફેરફાર કર્યો છે. સુકન્યા સમૃદ્ધિ યોજનામાં હવે ૮.૨% વ્યાજ મળશે.",
+        category: "યોજના",
+        image: fallbackImages[2]
     }
 ];
 
@@ -101,12 +118,12 @@ const NewsSection: React.FC = () => {
     }
   };
 
-  const autoSyncDailyNews = useCallback(async () => {
+  const autoSyncDailyNews = useCallback(async (force = false) => {
     if (syncing) return;
 
-    // Check quota cooldown (1 hour)
+    // Check quota cooldown (1 hour), unless forced
     const lastQuotaError = localStorage.getItem('lastQuotaError');
-    if (lastQuotaError && Date.now() - parseInt(lastQuotaError) < 60 * 60 * 1000) {
+    if (!force && lastQuotaError && Date.now() - parseInt(lastQuotaError) < 60 * 60 * 1000) {
         console.log("Skipping sync due to recent quota error.");
         return;
     }
@@ -117,16 +134,16 @@ const NewsSection: React.FC = () => {
       
       const prompt = `Act as a Gujarati News Reporter for a rural village app. 
       Today is ${todayStr}.
-      Generate 4 *UNIQUE* and *LATEST* news articles relevant to Gujarat villagers.
+      Generate 4 *FRESH*, *UNIQUE* and *LATEST* news articles relevant to Gujarat villagers/farmers.
       
       MANDATORY TOPICS (Mix these):
-      1. Today's Weather Alert (Monsoon/Heatwave based on current month).
-      2. Latest Agriculture Market Price trends (Cotton, Groundnut, Jeera).
-      3. New Government Scheme Deadline Reminder.
-      4. General Gujarat State News.
+      1. Today's Weather Alert (Heat/Rain/Cold based on current actual date).
+      2. Latest Agriculture Market Price trends (Cotton, Jeera, Groundnut) - Make sure prices are realistic for ${todayStr}.
+      3. Government Scheme Update.
+      4. Local Gujarat News.
 
       Output JSON format: [{ "title": "...", "summary": "...", "content": "...", "category": "..." }]
-      Language: Gujarati only. Content length: 100 words per article.`;
+      Language: Gujarati only. Content length: 120 words per article. Make it sound very recent.`;
 
       const response = await ai.models.generateContent({
         model: "gemini-3-flash-preview",
@@ -197,15 +214,15 @@ const NewsSection: React.FC = () => {
       
       if (data.length > 0) {
           setNewsList(data);
-          // Check if we have news for TODAY
+          // Check if we have news for TODAY. If not, trigger sync.
           const todaysNews = data.filter((a: any) => a.date === todayStr);
           if (todaysNews.length === 0) { 
-              console.log("No news for today, syncing...");
-              autoSyncDailyNews(); 
+              console.log("No news for today found in DB, syncing...");
+              autoSyncDailyNews(true); 
           }
       } else {
           setNewsList(fallbackNews);
-          autoSyncDailyNews();
+          autoSyncDailyNews(true);
       }
     } catch (err: any) { 
         console.error("Fetch Error:", err);
@@ -220,13 +237,20 @@ const NewsSection: React.FC = () => {
   return (
     <div className="w-full max-w-4xl mx-auto px-4 py-6 animate-fade-in pb-20">
       <div className="mb-8 text-center relative">
-          <div className="inline-block bg-emerald-50 px-4 py-1.5 rounded-full border border-emerald-100 mb-2">
-             <span className="text-[10px] font-black text-emerald-700 uppercase tracking-widest flex items-center gap-2">
-                <span className={`w-2 h-2 rounded-full ${syncing ? 'bg-orange-500 animate-ping' : 'bg-emerald-500'}`}></span>
-                {syncing ? 'Updating News...' : `Today: ${todayStr}`}
-             </span>
+          <div className="flex flex-col items-center gap-2">
+             <div className="inline-block bg-emerald-50 px-4 py-1.5 rounded-full border border-emerald-100">
+                <span className="text-[10px] font-black text-emerald-700 uppercase tracking-widest flex items-center gap-2">
+                    <span className={`w-2 h-2 rounded-full ${syncing ? 'bg-orange-500 animate-ping' : 'bg-emerald-500'}`}></span>
+                    {syncing ? 'સમાચાર અપડેટ થઈ રહ્યા છે...' : `આજની તારીખ: ${todayStr}`}
+                </span>
+             </div>
+             {!syncing && (
+                <button onClick={() => autoSyncDailyNews(true)} className="text-[10px] text-emerald-600 font-bold underline cursor-pointer hover:text-emerald-800">
+                   🔄 Refresh Latest News
+                </button>
+             )}
           </div>
-          <h2 className="text-3xl font-black text-gray-900">તાજા સમાચાર અને લેખ</h2>
+          <h2 className="text-3xl font-black text-gray-900 mt-2">તાજા સમાચાર અને લેખ</h2>
       </div>
 
       <div className="space-y-12">
