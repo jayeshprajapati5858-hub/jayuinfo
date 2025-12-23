@@ -137,7 +137,6 @@ const SearchPage = () => {
 };
 
 const App: React.FC = () => {
-  const [isSyncingNews, setIsSyncingNews] = useState(false);
   const [hasNewNotices, setHasNewNotices] = useState(false);
   const [tickerNotices, setTickerNotices] = useState<any[]>([]);
   const [homeNews, setHomeNews] = useState<any[]>([]);
@@ -200,89 +199,6 @@ const App: React.FC = () => {
   useEffect(() => {
     loadInitialData();
   }, [loadInitialData]);
-
-  // Helper to prevent frequent API calls
-  const shouldFetch = (key: string, minutes: number) => {
-      const last = localStorage.getItem(key);
-      if (!last) return true;
-      const diff = Date.now() - parseInt(last);
-      return diff > minutes * 60 * 1000;
-  };
-
-  const triggerBackgroundSync = useCallback(async () => {
-      // 1. Check if sync is needed (every 4 hours to save API credits, but keep fresh)
-      if (!shouldFetch('lastNewsSync', 240)) return; 
-      if (isSyncingNews) return;
-      
-      setIsSyncingNews(true);
-      const GNEWS_API_KEY = '017423a12b65fd9043317be57784cc28';
-
-      try {
-          // 2. Fetch Real-time News using GNews API
-          // Targeting Gujarat Agriculture specifically for village audience
-          const query = 'Gujarat Agriculture OR Khedut OR Gujarat Government Schemes';
-          const url = `https://gnews.io/api/v4/search?q=${encodeURIComponent(query)}&lang=gu&country=in&max=5&apikey=${GNEWS_API_KEY}`;
-          
-          let fetchedArticles = [];
-          
-          try {
-             const res = await fetch(url);
-             if (res.status === 403) {
-               console.warn("GNews API Limit Reached");
-               return; // Exit if quota exceeded
-             }
-             const data = await res.json();
-             
-             if (data.articles) {
-                 fetchedArticles = data.articles;
-             }
-          } catch (apiErr) {
-             console.warn("GNews API fetch failed, utilizing DB cache", apiErr);
-          }
-
-          // 3. Store in DB (Avoid Duplicates)
-          for (const article of fetchedArticles) {
-              const exists = await pool.query('SELECT id FROM news WHERE title = $1', [article.title]);
-              
-              if (exists.rows.length === 0) {
-                 // Determine category based on content
-                 let category = 'સમાચાર';
-                 const text = (article.title + article.description).toLowerCase();
-                 if (text.includes('kisan') || text.includes('agriculture') || text.includes('ખેડૂત')) category = 'ખેતીવાડી';
-                 else if (text.includes('yojana') || text.includes('scheme') || text.includes('સહાય')) category = 'યોજના';
-                 else if (text.includes('weather') || text.includes('rain') || text.includes('વરસાદ')) category = 'હવામાન';
-
-                 await pool.query(
-                    `INSERT INTO news (title, summary, content, category, date, image) VALUES ($1, $2, $3, $4, $5, $6)`,
-                    [
-                      article.title,
-                      article.description || article.title,
-                      article.content || article.description,
-                      category,
-                      new Date(article.publishedAt).toLocaleDateString('gu-IN'),
-                      article.image || fallbackImages[Math.floor(Math.random() * fallbackImages.length)]
-                    ]
-                 );
-              }
-          }
-
-          localStorage.setItem('lastNewsSync', Date.now().toString());
-          
-          // 4. Refresh State
-          const newsRes = await pool.query('SELECT * FROM news ORDER BY id DESC LIMIT 5');
-          setHomeNews(newsRes.rows);
-
-      } catch (e) {
-          console.error("Sync Error", e);
-      } finally {
-          setIsSyncingNews(false);
-      }
-  }, [isSyncingNews]);
-
-  // Trigger sync on mount
-  useEffect(() => {
-    triggerBackgroundSync();
-  }, [triggerBackgroundSync]);
 
   return (
     <>

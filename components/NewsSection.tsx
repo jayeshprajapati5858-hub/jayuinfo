@@ -137,7 +137,7 @@ const NewsSection: React.FC = () => {
                               <div className="flex items-center gap-2 mb-3 text-[10px] text-gray-400 font-bold uppercase tracking-widest">
                                   <span>{article.date}</span>
                                   <span>•</span>
-                                  <span>GNews Verified</span>
+                                  <span>Verified Source</span>
                               </div>
                               
                               <h3 className="text-xl font-black text-gray-900 mb-3 leading-tight group-hover:text-indigo-600 transition-colors">
@@ -183,7 +183,7 @@ const NewsSection: React.FC = () => {
       {/* Footer Disclaimer for AdSense Compliance */}
       <div className="mt-8 pt-6 border-t border-gray-200 text-center">
           <p className="text-[10px] text-gray-400">
-              Disclaimer: News is aggregated from GNews API and public sources for informational purposes only. Verification is recommended before taking financial decisions.
+              Disclaimer: News is provided for informational purposes only. Verification is recommended before taking financial decisions.
           </p>
       </div>
     </div>
