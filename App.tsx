@@ -22,7 +22,7 @@ import StudentCorner from './components/StudentCorner';
 import BloodDonors from './components/BloodDonors';
 import NewsSection from './components/NewsSection';
 import VillageMarket from './components/VillageMarket';
-import { PrivacyPolicy, TermsConditions } from './components/LegalPages';
+import { PrivacyPolicy, TermsConditions, AboutUs, ContactUs } from './components/LegalPages';
 import { beneficiaryData } from './data/beneficiaries';
 import { Beneficiary } from './types';
 import { pool } from './utils/db';
@@ -68,7 +68,7 @@ type ServiceType = 'water' | 'health' | 'school' | 'notice' | 'schemes' | 'rojga
 
 const App: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
-  const [currentView, setCurrentView] = useState<'home' | 'search' | 'services' | 'panchayat' | 'more' | 'privacy' | 'terms'>('home');
+  const [currentView, setCurrentView] = useState<'home' | 'search' | 'services' | 'panchayat' | 'more' | 'privacy' | 'terms' | 'about' | 'contact'>('home');
   const [activeService, setActiveService] = useState<ServiceType | null>(null);
   const [isSyncingNews, setIsSyncingNews] = useState(false);
   const [hasNewNotices, setHasNewNotices] = useState(false);
@@ -83,12 +83,13 @@ const App: React.FC = () => {
       try {
           const res = await pool.query('SELECT id FROM news WHERE date = $1 LIMIT 1', [todayStr]);
           if (res.rows.length === 0) {
-              console.log("App Main Sync: Missing news for today. Triggering...");
               setIsSyncingNews(true);
               const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
               
-              // 1. Generate News Content
-              const prompt = `Generate 5 professional Gujarati news articles for ${todayStr}. Focus: Gujarat Govt Agriculture (i-Khedut), weather, and PM-Kisan. Return as JSON array with title, summary, content, category.`;
+              const prompt = `Generate 5 high-quality, long-form Gujarati news articles for ${todayStr}. These are for a professional village portal to get AdSense approval. 
+              Focus: Gujarat Government Agriculture (i-Khedut), educational scholarship deadlines, weather alerts, and PM-Kisan status. 
+              Content must be original, helpful, and at least 300 words each. Return JSON array with title, summary, content, category.`;
+              
               const aiRes = await ai.models.generateContent({
                   model: "gemini-3-flash-preview",
                   contents: prompt,
@@ -114,20 +115,18 @@ const App: React.FC = () => {
               for (const item of news) {
                   if (!item.title || !item.content) continue;
 
-                  // 2. Generate News Image for each
                   let imageUrl = null;
                   try {
                     const imgRes = await ai.models.generateContent({
                         model: 'gemini-2.5-flash-image',
-                        contents: { parts: [{ text: `A realistic professional news image for: ${item.title}` }] },
+                        contents: { parts: [{ text: `A professional journalistic news image representing rural Gujarat/India for: ${item.title}` }] },
                         config: { imageConfig: { aspectRatio: "16:9" } }
                     });
                     for (const p of imgRes.candidates[0].content.parts) {
                         if (p.inlineData) { imageUrl = `data:image/png;base64,${p.inlineData.data}`; break; }
                     }
-                  } catch(e) { console.warn("Image sync error", e); }
+                  } catch(e) { }
 
-                  // 3. Save to DB
                   const exists = await pool.query('SELECT id FROM news WHERE title = $1 AND date = $2', [item.title, todayStr]);
                   if (exists.rows.length === 0) {
                     await pool.query(
@@ -190,14 +189,6 @@ const App: React.FC = () => {
     });
   }, [searchQuery]);
 
-  const navItems = [
-    { id: 'home', label: 'હોમ', icon: "M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" },
-    { id: 'search', label: 'શોધો', icon: "M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" },
-    { id: 'services', label: 'સેવાઓ', icon: "M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" },
-    { id: 'panchayat', label: 'પંચાયત', icon: "M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" },
-    { id: 'more', label: 'અન્ય', icon: "M4 6h16M4 12h16M4 12h16M4 12h16M4 18h16" },
-  ];
-
   const handleServiceClick = (service: ServiceType) => {
     setActiveService(service);
     setCurrentView('services');
@@ -208,8 +199,16 @@ const App: React.FC = () => {
       { id: 'marketplace', label: 'ગ્રામ્ય હાટ', color: 'bg-amber-600', icon: <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"></path></svg> },
       { id: 'notice', label: 'નોટિસ', color: 'bg-orange-600', hasNotification: hasNewNotices, icon: <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z"></path></svg> },
       { id: 'rojgar', label: 'રોજગાર', color: 'bg-emerald-600', hasNotification: hasNewJobs, icon: <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg> },
-      { id: 'health', label: 'આરોગ્ય', color: 'bg-teal-600', icon: <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.384-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 00-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" /></svg> },
+      { id: 'health', label: 'આરોગ્ય', color: 'bg-teal-600', icon: <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.384-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" /></svg> },
       { id: 'water', label: 'પાણી', color: 'bg-blue-600', icon: <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0a2 2 0 01-2 2H6a2 2 0 01-2-2m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5" /></svg> },
+  ];
+
+  const navItems = [
+    { id: 'home', label: 'હોમ', icon: "M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" },
+    { id: 'search', label: 'શોધો', icon: "M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" },
+    { id: 'services', label: 'સેવાઓ', icon: "M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" },
+    { id: 'panchayat', label: 'પંચાયત', icon: "M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" },
+    { id: 'more', label: 'અન્ય', icon: "M4 6h16M4 12h16M4 12h16M4 12h16M4 18h16" },
   ];
 
   return (
@@ -218,13 +217,6 @@ const App: React.FC = () => {
       <div className="h-[60px]"></div>
       <NoticeTicker notices={tickerNotices} />
       
-      {isSyncingNews && (
-        <div className="absolute top-[65px] left-1/2 -translate-x-1/2 z-[60] bg-white px-4 py-1.5 rounded-full shadow-lg border border-indigo-100 flex items-center gap-2 animate-bounce">
-           <span className="w-2 h-2 bg-indigo-500 rounded-full animate-ping"></span>
-           <span className="text-[10px] font-black text-indigo-700 uppercase tracking-widest">આજના સમાચાર તૈયાર થઈ રહ્યા છે...</span>
-        </div>
-      )}
-
       <main className="flex-grow w-full max-w-2xl mx-auto px-4 py-6 pb-28">
         {currentView === 'home' && (
           <div className="animate-fade-in space-y-8">
@@ -242,6 +234,11 @@ const App: React.FC = () => {
                 <div className="sm:w-1/3"><WeatherWidget /></div>
             </div>
 
+            {/* AdSense Space Placeholder */}
+            <div className="bg-gray-100 border-2 border-dashed border-gray-200 h-24 rounded-2xl flex items-center justify-center">
+               <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">Advertisement Space</p>
+            </div>
+
             <div onClick={() => setCurrentView('search')} className="bg-emerald-600 rounded-[2rem] p-6 shadow-xl shadow-emerald-200/50 cursor-pointer transform active:scale-[0.98] transition-all group relative overflow-hidden">
                 <div className="absolute top-0 right-0 w-48 h-48 bg-white/10 rounded-full blur-3xl -mr-16 -mt-16 group-hover:scale-110 transition-transform duration-700"></div>
                 <div className="flex items-center gap-6 relative z-10">
@@ -251,9 +248,6 @@ const App: React.FC = () => {
                     <div className="flex-1">
                         <h3 className="text-white font-black text-lg">સરકારી સહાયની યાદી ૨૦૨૪</h3>
                         <p className="text-emerald-50 text-xs mt-1 font-bold opacity-80">કૃષિ સહાય પેકેજમાં તમારું નામ છે કે નહીં તે તપાસો...</p>
-                    </div>
-                    <div className="text-white bg-white/10 p-2 rounded-full group-hover:translate-x-1 transition-transform">
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M9 5l7 7-7 7"></path></svg>
                     </div>
                 </div>
             </div>
@@ -317,22 +311,24 @@ const App: React.FC = () => {
                 </div>
             </div>
 
-            <div onClick={() => handleServiceClick('schemes')} className="bg-indigo-700 rounded-[2.5rem] p-6 text-white relative overflow-hidden cursor-pointer shadow-xl shadow-indigo-200 group">
-                <div className="absolute right-0 bottom-0 w-48 h-48 bg-white/10 rounded-full blur-3xl -mr-20 -mb-20"></div>
-                <div className="relative z-10 flex items-center justify-between gap-6">
-                   <div className="flex-1">
-                      <h3 className="text-xl font-black tracking-tight">યોજનાઓ અને દસ્તાવેજો 📜</h3>
-                      <p className="text-indigo-100 text-xs font-medium mt-1 leading-relaxed opacity-90">કયા કામ માટે કયા પુરાવા જોઈએ? આવક, જાતિ અને અન્ય દાખલાઓની સંપૂર્ણ યાદી અહિયાં જુઓ.</p>
-                   </div>
-                   <div className="bg-white/20 p-4 rounded-2xl backdrop-blur-md border border-white/20 group-hover:scale-110 transition-transform">
-                      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
-                   </div>
-                </div>
+            {/* AdSense Bottom Unit Placeholder */}
+            <div className="bg-gray-100 border-2 border-dashed border-gray-200 h-40 rounded-3xl flex items-center justify-center">
+               <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">In-Feed Native Ad Unit</p>
             </div>
 
             <div className="text-center pt-8 opacity-20 flex flex-col items-center">
               <div className="w-10 h-1 h-0.5 bg-gray-400 rounded-full mb-4"></div>
               <p className="text-[9px] font-black text-gray-500 uppercase tracking-[0.4em]">Bharada Digital Gram Panchayat Portal • 2024</p>
+            </div>
+            
+            {/* Extended Footer Links for AdSense Approval */}
+            <div className="pt-10 border-t border-gray-100">
+               <div className="grid grid-cols-2 gap-4">
+                  <button onClick={() => setCurrentView('about')} className="text-left p-4 bg-white rounded-2xl border border-gray-50 shadow-sm"><span className="block text-[8px] font-black text-gray-400 uppercase mb-1">More</span><span className="text-xs font-bold">About Us (અમારા વિશે)</span></button>
+                  <button onClick={() => setCurrentView('contact')} className="text-left p-4 bg-white rounded-2xl border border-gray-50 shadow-sm"><span className="block text-[8px] font-black text-gray-400 uppercase mb-1">Help</span><span className="text-xs font-bold">Contact (સંપર્ક)</span></button>
+                  <button onClick={() => setCurrentView('privacy')} className="text-left p-4 bg-white rounded-2xl border border-gray-50 shadow-sm"><span className="block text-[8px] font-black text-gray-400 uppercase mb-1">Legal</span><span className="text-xs font-bold">Privacy Policy</span></button>
+                  <button onClick={() => setCurrentView('terms')} className="text-left p-4 bg-white rounded-2xl border border-gray-50 shadow-sm"><span className="block text-[8px] font-black text-gray-400 uppercase mb-1">Policy</span><span className="text-xs font-bold">Terms & Conditions</span></button>
+               </div>
             </div>
           </div>
         )}
@@ -340,8 +336,8 @@ const App: React.FC = () => {
         {currentView === 'search' && (
            <div className="animate-fade-in space-y-4">
               <div className="flex items-center gap-2 px-1 mb-2"><button onClick={() => setCurrentView('home')} className="p-2 -ml-2 rounded-full text-gray-500 hover:bg-gray-100 transition-colors"><svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7"></path></svg></button><h2 className="text-xl font-bold text-gray-800">યાદીમાં નામ શોધો</h2></div>
-              <div className="sticky top-[70px] z-30 bg-[#F9FAFB] pb-2"><div className="bg-white rounded-2xl shadow-lg border border-emerald-100 p-2"><SearchBar value={searchQuery} onChange={setSearchQuery} /></div></div>
-              <div className="bg-white rounded-2xl shadow-sm border border-gray-200 px-4 pb-4 min-h-[500px]"><BeneficiaryList data={filteredData} /></div>
+              <div className="sticky top-[70px] z-30 bg-[#F9FAFB] pb-2"><SearchBar value={searchQuery} onChange={setSearchQuery} /></div>
+              <div className="bg-white rounded-[2rem] shadow-sm border border-gray-100 px-4 pb-4 min-h-[500px]"><BeneficiaryList data={filteredData} /></div>
            </div>
         )}
 
@@ -372,27 +368,18 @@ const App: React.FC = () => {
           </div>
         )}
 
-        {currentView === 'panchayat' && (
-          <div className="animate-fade-in">
-             <div className="flex items-center gap-2 mb-4"><button onClick={() => setCurrentView('home')} className="p-2 -ml-2 rounded-full text-gray-500 hover:bg-gray-100 transition-colors"><svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7"></path></svg></button><h2 className="text-xl font-bold text-gray-800">પંચાયત સંપર્ક</h2></div>
-             <PanchayatInfo />
-          </div>
-        )}
-
+        {currentView === 'panchayat' && <div className="animate-fade-in"><button onClick={() => setCurrentView('home')} className="mb-4 text-xs font-bold text-emerald-600">← હોમ</button><PanchayatInfo /></div>}
+        {currentView === 'about' && <div className="animate-fade-in"><button onClick={() => setCurrentView('home')} className="mb-4 text-xs font-bold text-emerald-600">← હોમ</button><AboutUs /></div>}
+        {currentView === 'contact' && <div className="animate-fade-in"><button onClick={() => setCurrentView('home')} className="mb-4 text-xs font-bold text-emerald-600">← હોમ</button><ContactUs /></div>}
+        {currentView === 'privacy' && <div className="animate-fade-in"><button onClick={() => setCurrentView('home')} className="mb-4 text-xs font-bold text-emerald-600">← હોમ</button><PrivacyPolicy /></div>}
+        {currentView === 'terms' && <div className="animate-fade-in"><button onClick={() => setCurrentView('home')} className="mb-4 text-xs font-bold text-emerald-600">← હોમ</button><TermsConditions /></div>}
+        
         {currentView === 'more' && (
           <div className="animate-fade-in space-y-8">
              <div className="flex items-center gap-2 mb-1"><button onClick={() => setCurrentView('home')} className="p-2 -ml-2 rounded-full text-gray-500 hover:bg-gray-100 transition-colors"><svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7"></path></svg></button><h2 className="text-xl font-bold text-gray-800">અન્ય માહિતી</h2></div>
              <EmergencyContacts /><ImportantLinks /><PhotoGallery />
-             <div className="flex flex-col gap-2 p-4 bg-white rounded-3xl border shadow-sm">
-                <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-3 ml-2">કાનૂની માહિતી</h3>
-                <button onClick={() => setCurrentView('privacy')} className="text-left text-sm font-bold flex justify-between items-center p-3 hover:bg-gray-50 rounded-2xl transition-colors"><span>Privacy Policy</span><span className="text-gray-300">→</span></button>
-                <button onClick={() => setCurrentView('terms')} className="text-left text-sm font-bold flex justify-between items-center p-3 hover:bg-gray-50 rounded-2xl transition-colors"><span>Terms & Conditions</span><span className="text-gray-300">→</span></button>
-             </div>
           </div>
         )}
-
-        {currentView === 'privacy' && <div className="animate-fade-in"><button onClick={() => setCurrentView('more')} className="mb-4 text-xs font-bold text-indigo-600">← પાછા જાઓ</button><PrivacyPolicy /></div>}
-        {currentView === 'terms' && <div className="animate-fade-in"><button onClick={() => setCurrentView('more')} className="mb-4 text-xs font-bold text-indigo-600">← પાછા જાઓ</button><TermsConditions /></div>}
       </main>
 
       <div className="fixed bottom-0 left-0 right-0 bg-white/90 backdrop-blur-xl border-t border-gray-100 z-50 shadow-[0_-8px_30px_rgb(0,0,0,0.04)]">
