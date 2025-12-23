@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo, useEffect } from 'react';
 import Header from './components/Header';
 import SearchBar from './components/SearchBar';
@@ -7,14 +8,12 @@ import ImportantLinks from './components/ImportantLinks';
 import WaterSupply from './components/WaterSupply';
 import EmergencyContacts from './components/EmergencyContacts';
 import PhotoGallery from './components/PhotoGallery';
-import MarketRates from './components/MarketRates';
 import WeatherWidget from './components/WeatherWidget';
 import HealthCenter from './components/HealthCenter';
 import SchoolInfo from './components/SchoolInfo';
 import NoticeBoard from './components/NoticeBoard';
 import SchemeInfo from './components/SchemeInfo';
 import RojgarBoard from './components/RojgarBoard';
-import BusSchedule from './components/BusSchedule';
 import BusinessDirectory from './components/BusinessDirectory';
 import VillageProfile from './components/VillageProfile';
 import AgriRental from './components/AgriRental';
@@ -26,13 +25,14 @@ import VillageMarket from './components/VillageMarket';
 import { PrivacyPolicy, TermsConditions } from './components/LegalPages';
 import { beneficiaryData } from './data/beneficiaries';
 import { Beneficiary } from './types';
+import { pool } from './utils/db';
 
 const normalizeToSkeleton = (text: string) => {
   let normalized = text.toLowerCase();
   const gujMap: { [key: string]: string } = {
     'ક': 'k', 'ખ': 'k', 'ગ': 'g', 'ઘ': 'g', 'ચ': 'c', 'છ': 'c', 'જ': 'j', 'ઝ': 'j',
     'ટ': 't', 'ઠ': 't', 'ડ': 'd', 'ઢ': 'd', 'ણ': 'n', 'ત': 't', 'થ': 't', 'દ': 'd',
-    'ધ': 'd', 'ન': 'n', 'પ': 'p', 'ફ': 'p', 'બ': 'b', 'ભ': 'b', 'મ': 'm', 'ય': 'y',
+    'ધ': 'd', 'ન': 'n', 'પ': 'p', 'ફ': 'p', 'બ': 'b', 'મ': 'm', 'ય': 'y',
     'ર': 'r', 'લ': 'l', 'વ': 'v', 'શ': 's', 'ષ': 's', 'સ': 's', 'હ': 'h', 'ળ': 'l',
     'ક્ષ': 'x', 'જ્ઞ': 'gn'
   };
@@ -50,11 +50,11 @@ const NoticeTicker = ({ notices }: { notices: any[] }) => {
   ];
   const displayData = notices && notices.length > 0 ? notices : defaultNotices;
   return (
-    <div className="bg-orange-600 overflow-hidden py-2 relative shadow-md">
+    <div className="bg-emerald-900 overflow-hidden py-1.5 relative border-b border-emerald-800">
        <div className="whitespace-nowrap animate-marquee flex gap-12">
           {displayData.map((n, i) => (
-             <span key={i} className="text-white text-sm font-bold inline-flex items-center gap-2">
-               <span className="bg-red-500 text-white text-[10px] px-2 py-0.5 rounded animate-pulse">LIVE</span>
+             <span key={i} className="text-emerald-50 text-[11px] font-bold inline-flex items-center gap-2">
+               <span className="bg-red-500 text-white text-[9px] px-1.5 py-0.5 rounded-sm font-black animate-pulse">નવું</span>
                {n.title}
              </span>
           ))}
@@ -63,7 +63,7 @@ const NoticeTicker = ({ notices }: { notices: any[] }) => {
   );
 };
 
-type ServiceType = 'market' | 'water' | 'health' | 'school' | 'notice' | 'schemes' | 'rojgar' | 'bus' | 'business' | 'profile' | 'agri' | 'complaint' | 'student' | 'blood' | 'news' | 'marketplace';
+type ServiceType = 'water' | 'health' | 'school' | 'notice' | 'schemes' | 'rojgar' | 'business' | 'profile' | 'agri' | 'complaint' | 'student' | 'blood' | 'news' | 'marketplace';
 
 const App: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
@@ -72,27 +72,36 @@ const App: React.FC = () => {
   const [hasNewNotices, setHasNewNotices] = useState(false);
   const [hasNewJobs, setHasNewJobs] = useState(false);
   const [tickerNotices, setTickerNotices] = useState<any[]>([]);
+  const [homeNews, setHomeNews] = useState<any[]>([]);
+  const [featuredNotice, setFeaturedNotice] = useState<any>(null);
 
-  const checkUpdates = () => {
+  const checkUpdates = async () => {
       const oneDayMs = 24 * 60 * 60 * 1000;
       const now = Date.now();
-      const notices = JSON.parse(localStorage.getItem('villageNotices') || '[]');
-      const activeNotices = notices.filter((n: any) => (now - (n.timestamp || 0)) < oneDayMs);
-      setHasNewNotices(activeNotices.length > 0);
-      setTickerNotices(activeNotices);
-      const jobs = JSON.parse(localStorage.getItem('rojgarListings') || '[]');
-      const recentJob = jobs.some((j: any) => (now - (j.timestamp || 0)) < oneDayMs);
-      setHasNewJobs(recentJob);
+      
+      try {
+          const noticeRes = await pool.query('SELECT * FROM notices ORDER BY id DESC LIMIT 5');
+          const notices = noticeRes.rows;
+          const activeNotices = notices.filter((n: any) => (now - new Date(n.created_at || Date.now()).getTime()) < oneDayMs);
+          setHasNewNotices(activeNotices.length > 0);
+          setTickerNotices(notices.length > 0 ? notices : []);
+          setFeaturedNotice(notices[0] || null);
+
+          const newsRes = await pool.query('SELECT * FROM news ORDER BY id DESC LIMIT 3');
+          setHomeNews(newsRes.rows);
+
+          const jobRes = await pool.query('SELECT * FROM jobs ORDER BY id DESC LIMIT 1');
+          const recentJob = jobRes.rows.some((j: any) => (now - new Date(j.created_at || Date.now()).getTime()) < oneDayMs);
+          setHasNewJobs(recentJob);
+      } catch (err) {
+          console.error("Fetch error:", err);
+      }
   };
 
   useEffect(() => {
     checkUpdates();
-    const interval = setInterval(checkUpdates, 5000);
-    window.addEventListener('noticeUpdate', checkUpdates);
-    return () => {
-        clearInterval(interval);
-        window.removeEventListener('noticeUpdate', checkUpdates);
-    };
+    const interval = setInterval(checkUpdates, 15000);
+    return () => clearInterval(interval);
   }, []);
 
   const filteredData = useMemo(() => {
@@ -122,84 +131,161 @@ const App: React.FC = () => {
   };
 
   const servicesList = [
-      { id: 'news', label: 'સમાચાર', color: 'bg-indigo-600 text-white', icon: <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z"></path></svg> },
-      { id: 'marketplace', label: 'ગ્રામ્ય હાટ', color: 'bg-amber-100 text-amber-700', icon: <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"></path></svg> },
-      { id: 'notice', label: 'નોટિસ', color: 'bg-orange-100 text-orange-700', hasNotification: hasNewNotices, icon: <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z"></path></svg> },
-      { id: 'rojgar', label: 'રોજગાર', color: 'bg-emerald-50 text-emerald-600', hasNotification: hasNewJobs, icon: <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg> },
-      { id: 'bus', label: 'બસ ટાઈમ', color: 'bg-red-50 text-red-600', icon: <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" /></svg> },
-      { id: 'market', label: 'બજાર ભાવ', color: 'bg-green-100 text-green-700', icon: <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" /></svg> },
+      { id: 'news', label: 'સમાચાર', color: 'bg-indigo-600', icon: <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z"></path></svg> },
+      { id: 'marketplace', label: 'ગ્રામ્ય હાટ', color: 'bg-amber-600', icon: <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"></path></svg> },
+      { id: 'notice', label: 'નોટિસ', color: 'bg-orange-600', hasNotification: hasNewNotices, icon: <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z"></path></svg> },
+      { id: 'rojgar', label: 'રોજગાર', color: 'bg-emerald-600', hasNotification: hasNewJobs, icon: <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg> },
+      { id: 'health', label: 'આરોગ્ય', color: 'bg-teal-600', icon: <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.384-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" /></svg> },
+      { id: 'water', label: 'પાણી', color: 'bg-blue-600', icon: <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0a2 2 0 01-2 2H6a2 2 0 01-2-2m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5" /></svg> },
   ];
 
   return (
-    <div className="min-h-screen flex flex-col bg-[#F8FAFC] font-sans text-gray-900">
+    <div className="min-h-screen flex flex-col bg-[#F9FAFB] font-sans text-gray-900">
       <Header />
       <div className="h-[60px]"></div>
       <NoticeTicker notices={tickerNotices} />
+      
       <main className="flex-grow w-full max-w-2xl mx-auto px-4 py-6 pb-28">
         {currentView === 'home' && (
-          <div className="animate-fade-in space-y-6">
-            <div className="grid grid-cols-1 sm:grid-cols-5 gap-3">
-               <div className="col-span-1 sm:col-span-3 bg-white rounded-3xl p-5 shadow-sm border border-gray-100 flex flex-col justify-between relative overflow-hidden min-h-[160px]">
-                  <div className="absolute top-0 right-0 w-24 h-24 bg-emerald-100 rounded-full blur-2xl -mr-8 -mt-8"></div>
-                  <div>
-                    <h2 className="text-lg font-bold text-gray-800">સ્વાગત છે 👋</h2>
-                    <p className="text-xs text-gray-500 mt-1 leading-relaxed">ગામની તમામ માહિતી અને સુવિધાઓ હવે તમારી આંગળીના ટેરવે.</p>
-                  </div>
-                  <button onClick={() => setCurrentView('panchayat')} className="text-emerald-600 text-xs font-bold flex items-center gap-1 mt-2">પંચાયત સંપર્ક <span className="text-lg">→</span></button>
-               </div>
-               <div className="col-span-1 sm:col-span-2 min-h-[160px]"><WeatherWidget /></div>
+          <div className="animate-fade-in space-y-8">
+            {/* HERO: Greeting & Weather */}
+            <div className="flex flex-col sm:flex-row gap-4 items-stretch">
+                <div className="flex-1 bg-white rounded-3xl p-6 shadow-sm border border-gray-100 flex flex-col justify-between relative overflow-hidden min-h-[140px]">
+                    <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-50 rounded-full blur-3xl -mr-16 -mt-16"></div>
+                    <div className="relative z-10">
+                        <h2 className="text-xl font-black text-gray-800 tracking-tight">કેમ છો, ભરાડાવાસીઓ! 👋</h2>
+                        <p className="text-xs text-gray-500 mt-1.5 font-medium leading-relaxed">ડિજિટલ ભરાડા પોર્ટલ પર આપનું હાર્દિક સ્વાગત છે. તમારી પંચાયત હવે તમારા ખિસ્સામાં.</p>
+                    </div>
+                    <button onClick={() => setCurrentView('panchayat')} className="w-fit bg-gray-900 text-white px-4 py-2 rounded-xl text-[10px] font-bold mt-4 hover:bg-black transition-colors flex items-center gap-2">
+                        પંચાયત પ્રોફાઇલ <span className="text-sm">→</span>
+                    </button>
+                </div>
+                <div className="sm:w-1/3"><WeatherWidget /></div>
             </div>
-            <div onClick={() => setCurrentView('search')} className="bg-white rounded-2xl p-4 shadow-lg border border-emerald-100 cursor-pointer transform active:scale-[0.98] transition-all group">
-               <div className="flex items-center gap-4">
-                  <div className="bg-emerald-50 text-emerald-600 p-3 rounded-xl group-hover:bg-emerald-100 transition-colors shadow-sm shadow-emerald-200"><svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg></div>
-                  <div className="flex-1">
-                     <h3 className="text-gray-900 font-bold text-base">DBT લિસ્ટમાં તમારું નામ તપાસો</h3>
-                     <p className="text-gray-400 text-xs mt-0.5">યાદીમાં તમારું નામ છે કે નહિ તે જાણવા ક્લિક કરો...</p>
-                  </div>
-                  <div className="text-gray-300">
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7"></path></svg>
-                  </div>
-               </div>
+
+            {/* ACTION CARD: DBT SEARCH */}
+            <div onClick={() => setCurrentView('search')} className="bg-emerald-600 rounded-[2rem] p-6 shadow-xl shadow-emerald-200/50 cursor-pointer transform active:scale-[0.98] transition-all group relative overflow-hidden">
+                <div className="absolute top-0 right-0 w-48 h-48 bg-white/10 rounded-full blur-3xl -mr-16 -mt-16 group-hover:scale-110 transition-transform duration-700"></div>
+                <div className="flex items-center gap-6 relative z-10">
+                    <div className="bg-white/15 text-white p-4 rounded-2xl backdrop-blur-md border border-white/20 shadow-inner">
+                        <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                    </div>
+                    <div className="flex-1">
+                        <h3 className="text-white font-black text-lg">સરકારી સહાયની યાદી ૨૦૨૪</h3>
+                        <p className="text-emerald-50 text-xs mt-1 font-bold opacity-80">કૃષિ સહાય પેકેજમાં તમારું નામ છે કે નહીં તે તપાસો...</p>
+                    </div>
+                    <div className="text-white bg-white/10 p-2 rounded-full group-hover:translate-x-1 transition-transform">
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M9 5l7 7-7 7"></path></svg>
+                    </div>
+                </div>
             </div>
+
+            {/* QUICK SERVICES GRID */}
             <div>
-              <div className="flex items-center justify-between px-1 mb-3"><h3 className="text-sm font-bold text-gray-800">ઝડપી સુવિધાઓ</h3></div>
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                 {servicesList.map((service) => (
-                     <button key={service.id} onClick={() => handleServiceClick(service.id as ServiceType)} className={`p-4 rounded-2xl border border-gray-100 shadow-sm flex flex-col items-center gap-3 active:scale-95 transition-all relative ${service.id === 'marketplace' ? 'bg-amber-600 text-white shadow-lg shadow-amber-100' : 'bg-white hover:border-gray-300'}`}>
-                        {service.hasNotification && <span className="absolute top-3 right-3 w-3 h-3 bg-red-500 rounded-full border-2 border-white animate-pulse shadow-sm"></span>}
-                        <div className={`w-10 h-10 rounded-full flex items-center justify-center ${service.id === 'marketplace' ? 'bg-white/20 text-white' : service.color}`}>{service.icon}</div>
-                        <span className={`text-xs font-bold ${service.id === 'marketplace' ? 'text-white' : 'text-gray-700'}`}>{service.label}</span>
-                     </button>
-                 ))}
-              </div>
+                <div className="flex items-center justify-between px-1 mb-5">
+                    <h3 className="text-xs font-black text-gray-400 uppercase tracking-[0.2em] flex items-center gap-2">
+                        <span className="w-1 h-3 bg-emerald-500 rounded-full"></span>
+                        ગ્રામ્ય સેવાઓ
+                    </h3>
+                </div>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                    {servicesList.map((service) => (
+                        <button key={service.id} onClick={() => handleServiceClick(service.id as ServiceType)} className={`group p-5 rounded-[2rem] border border-gray-100 shadow-sm flex flex-col items-center gap-4 active:scale-95 transition-all relative ${service.id === 'marketplace' ? 'bg-amber-600 text-white shadow-lg shadow-amber-200' : 'bg-white hover:border-gray-300'}`}>
+                            {service.hasNotification && <span className="absolute top-4 right-4 w-3 h-3 bg-red-500 rounded-full border-2 border-white animate-pulse"></span>}
+                            <div className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-transform group-hover:scale-110 ${service.id === 'marketplace' ? 'bg-white/20 text-white' : `${service.color} text-white shadow-lg shadow-gray-200`}`}>
+                                {service.icon}
+                            </div>
+                            <span className={`text-[10px] font-black uppercase tracking-wider ${service.id === 'marketplace' ? 'text-white' : 'text-gray-700'}`}>{service.label}</span>
+                        </button>
+                    ))}
+                </div>
+            </div>
+
+            {/* RECENT UPDATES: NEWS & NOTICE */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* News Preview */}
+                <div className="space-y-4">
+                    <div className="flex items-center justify-between px-1">
+                        <h3 className="text-xs font-black text-gray-400 uppercase tracking-[0.2em]">તાજા સમાચાર</h3>
+                        <button onClick={() => handleServiceClick('news')} className="text-emerald-600 text-[10px] font-black uppercase tracking-widest">બધા જુઓ →</button>
+                    </div>
+                    <div className="space-y-3">
+                        {homeNews.length === 0 ? (
+                            <div className="bg-gray-50 border border-dashed border-gray-200 rounded-2xl p-6 text-center text-xs text-gray-400 font-bold">સમાચાર લોડ થઈ રહ્યા છે...</div>
+                        ) : homeNews.map((article: any) => (
+                            <div key={article.id} onClick={() => handleServiceClick('news')} className="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow cursor-pointer">
+                                <span className="text-[9px] font-black text-indigo-600 uppercase mb-1 block tracking-wider">{article.category}</span>
+                                <h4 className="text-xs font-black text-gray-900 leading-tight line-clamp-2">{article.title}</h4>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+
+                {/* Important Banner */}
+                <div className="space-y-4">
+                    <div className="flex items-center justify-between px-1">
+                        <h3 className="text-xs font-black text-gray-400 uppercase tracking-[0.2em]">મહત્વની નોટિસ</h3>
+                    </div>
+                    {featuredNotice ? (
+                        <div onClick={() => handleServiceClick('notice')} className="bg-orange-50 border border-orange-100 rounded-[2rem] p-6 relative cursor-pointer hover:bg-orange-100 transition-colors h-full">
+                            <span className="bg-orange-600 text-white text-[9px] font-black px-2.5 py-1 rounded-full uppercase tracking-tighter mb-4 inline-block">વરન્ટ / નોટિસ</span>
+                            <h4 className="text-sm font-black text-gray-900 leading-tight mb-2">{featuredNotice.title}</h4>
+                            <p className="text-[11px] text-gray-500 line-clamp-3 font-medium">{featuredNotice.description}</p>
+                        </div>
+                    ) : (
+                        <div className="bg-gray-50 border border-dashed border-gray-200 rounded-[2rem] p-6 text-center h-[140px] flex items-center justify-center">
+                            <p className="text-xs text-gray-400 font-bold italic">હાલ કોઈ નવી નોટિસ નથી.</p>
+                        </div>
+                    )}
+                </div>
+            </div>
+
+            {/* FEATURED: DOCUMENTS BANNER */}
+            <div onClick={() => handleServiceClick('schemes')} className="bg-indigo-700 rounded-[2.5rem] p-6 text-white relative overflow-hidden cursor-pointer shadow-xl shadow-indigo-200 group">
+                <div className="absolute right-0 bottom-0 w-48 h-48 bg-white/10 rounded-full blur-3xl -mr-20 -mb-20"></div>
+                <div className="relative z-10 flex items-center justify-between gap-6">
+                   <div className="flex-1">
+                      <h3 className="text-xl font-black tracking-tight">યોજનાઓ અને દસ્તાવેજો 📜</h3>
+                      <p className="text-indigo-100 text-xs font-medium mt-1 leading-relaxed opacity-90">કયા કામ માટે કયા પુરાવા જોઈએ? આવક, જાતિ અને અન્ય દાખલાઓની સંપૂર્ણ યાદી અહિયાં જુઓ.</p>
+                   </div>
+                   <div className="bg-white/20 p-4 rounded-2xl backdrop-blur-md border border-white/20 group-hover:scale-110 transition-transform">
+                      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                   </div>
+                </div>
+            </div>
+
+            {/* BRANDING FOOTER */}
+            <div className="text-center pt-8 opacity-20 flex flex-col items-center">
+              <div className="w-10 h-1 h-0.5 bg-gray-400 rounded-full mb-4"></div>
+              <p className="text-[9px] font-black text-gray-500 uppercase tracking-[0.4em]">Bharada Digital Gram Panchayat Portal • 2024</p>
             </div>
           </div>
         )}
+
         {currentView === 'search' && (
            <div className="animate-fade-in space-y-4">
               <div className="flex items-center gap-2 px-1 mb-2"><button onClick={() => setCurrentView('home')} className="p-2 -ml-2 rounded-full text-gray-500 hover:bg-gray-100 transition-colors"><svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7"></path></svg></button><h2 className="text-xl font-bold text-gray-800">યાદીમાં નામ શોધો</h2></div>
-              <div className="sticky top-[70px] z-30 bg-[#F8FAFC] pb-2"><div className="bg-white rounded-2xl shadow-lg border border-emerald-100 p-2"><SearchBar value={searchQuery} onChange={setSearchQuery} /></div></div>
+              <div className="sticky top-[70px] z-30 bg-[#F9FAFB] pb-2"><div className="bg-white rounded-2xl shadow-lg border border-emerald-100 p-2"><SearchBar value={searchQuery} onChange={setSearchQuery} /></div></div>
               <div className="bg-white rounded-2xl shadow-sm border border-gray-200 px-4 pb-4 min-h-[500px]"><BeneficiaryList data={filteredData} /></div>
            </div>
         )}
+
         {currentView === 'services' && (
           <div className="animate-fade-in">
              <div className="flex items-center gap-2 px-1 mb-4"><button onClick={() => setCurrentView('home')} className="p-2 -ml-2 rounded-full text-gray-500 hover:bg-gray-100 transition-colors"><svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7"></path></svg></button><h2 className="text-xl font-bold text-gray-800">ગ્રામ્ય સેવાઓ</h2></div>
-            <div className="flex gap-2 overflow-x-auto pb-4 no-scrollbar mb-4">
+            <div className="flex gap-2 overflow-x-auto pb-4 no-scrollbar mb-4 border-b">
                 {servicesList.map(s => (
-                   <button key={s.id} onClick={() => setActiveService(s.id as ServiceType)} className={`px-4 py-2 rounded-full whitespace-nowrap text-[10px] font-bold transition-all border ${activeService === s.id ? 'bg-indigo-600 text-white border-indigo-600 shadow-md' : 'bg-white text-gray-500 border-gray-100'}`}>
+                   <button key={s.id} onClick={() => setActiveService(s.id as ServiceType)} className={`px-5 py-2.5 rounded-full whitespace-nowrap text-[10px] font-black tracking-widest uppercase transition-all border ${activeService === s.id ? 'bg-indigo-600 text-white border-indigo-600 shadow-lg' : 'bg-white text-gray-500 border-gray-100'}`}>
                        {s.label}
                    </button>
                 ))}
             </div>
-            {activeService === 'market' && <MarketRates />}
             {activeService === 'water' && <WaterSupply />}
             {activeService === 'health' && <HealthCenter />}
             {activeService === 'school' && <SchoolInfo />}
             {activeService === 'notice' && <NoticeBoard />}
             {activeService === 'schemes' && <SchemeInfo />}
             {activeService === 'rojgar' && <RojgarBoard />}
-            {activeService === 'bus' && <BusSchedule />}
             {activeService === 'business' && <BusinessDirectory />}
             {activeService === 'profile' && <VillageProfile />}
             {activeService === 'agri' && <AgriRental />}
@@ -210,33 +296,39 @@ const App: React.FC = () => {
             {activeService === 'marketplace' && <VillageMarket />}
           </div>
         )}
+
         {currentView === 'panchayat' && (
           <div className="animate-fade-in">
              <div className="flex items-center gap-2 mb-4"><button onClick={() => setCurrentView('home')} className="p-2 -ml-2 rounded-full text-gray-500 hover:bg-gray-100 transition-colors"><svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7"></path></svg></button><h2 className="text-xl font-bold text-gray-800">પંચાયત સંપર્ક</h2></div>
              <PanchayatInfo />
           </div>
         )}
+
         {currentView === 'more' && (
           <div className="animate-fade-in space-y-8">
              <div className="flex items-center gap-2 mb-1"><button onClick={() => setCurrentView('home')} className="p-2 -ml-2 rounded-full text-gray-500 hover:bg-gray-100 transition-colors"><svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7"></path></svg></button><h2 className="text-xl font-bold text-gray-800">અન્ય માહિતી</h2></div>
              <EmergencyContacts /><ImportantLinks /><PhotoGallery />
-             <div className="flex flex-col gap-2 p-4 bg-white rounded-2xl border shadow-sm">
-                <h3 className="text-xs font-bold text-gray-400 uppercase mb-2">કાનૂની</h3>
-                <button onClick={() => setCurrentView('privacy')} className="text-left text-sm font-bold flex justify-between p-2 hover:bg-gray-50 rounded-lg"><span>Privacy Policy</span><span>→</span></button>
-                <button onClick={() => setCurrentView('terms')} className="text-left text-sm font-bold flex justify-between p-2 hover:bg-gray-50 rounded-lg"><span>Terms & Conditions</span><span>→</span></button>
+             <div className="flex flex-col gap-2 p-4 bg-white rounded-3xl border shadow-sm">
+                <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-3 ml-2">કાનૂની માહિતી</h3>
+                <button onClick={() => setCurrentView('privacy')} className="text-left text-sm font-bold flex justify-between items-center p-3 hover:bg-gray-50 rounded-2xl transition-colors"><span>Privacy Policy</span><span className="text-gray-300">→</span></button>
+                <button onClick={() => setCurrentView('terms')} className="text-left text-sm font-bold flex justify-between items-center p-3 hover:bg-gray-50 rounded-2xl transition-colors"><span>Terms & Conditions</span><span className="text-gray-300">→</span></button>
              </div>
           </div>
         )}
+
         {currentView === 'privacy' && <div className="animate-fade-in"><button onClick={() => setCurrentView('more')} className="mb-4 text-xs font-bold text-indigo-600">← પાછા જાઓ</button><PrivacyPolicy /></div>}
         {currentView === 'terms' && <div className="animate-fade-in"><button onClick={() => setCurrentView('more')} className="mb-4 text-xs font-bold text-indigo-600">← પાછા જાઓ</button><TermsConditions /></div>}
       </main>
-      <div className="fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-lg border-t border-gray-200 z-50">
-        <div className="max-w-2xl mx-auto flex justify-around items-center pt-1 pb-safe">
+
+      <div className="fixed bottom-0 left-0 right-0 bg-white/90 backdrop-blur-xl border-t border-gray-100 z-50 shadow-[0_-8px_30px_rgb(0,0,0,0.04)]">
+        <div className="max-w-2xl mx-auto flex justify-around items-center pt-2 pb-safe">
           {navItems.map((item) => (
             <button key={item.id} onClick={() => { setCurrentView(item.id as any); if (item.id === 'services' && !activeService) setActiveService('news'); }} className="flex-1 py-3 relative flex flex-col items-center group">
-              {item.id === 'services' && (hasNewNotices || hasNewJobs) && <span className="absolute top-2 right-8 w-2 h-2 bg-red-500 rounded-full border border-white"></span>}
-              <div className={`transition-all rounded-full p-1.5 ${currentView === item.id ? 'text-emerald-600 bg-emerald-50' : 'text-gray-400 group-hover:text-gray-600'}`}><svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={currentView === item.id ? 2.5 : 2} d={item.icon} /></svg></div>
-              <span className={`text-[10px] font-bold mt-0.5 ${currentView === item.id ? 'text-emerald-700' : 'text-gray-400 group-hover:text-gray-600'}`}>{item.label}</span>
+              {item.id === 'services' && (hasNewNotices || hasNewJobs) && <span className="absolute top-2 right-[30%] w-2 h-2 bg-red-500 rounded-full border-2 border-white shadow-sm"></span>}
+              <div className={`transition-all duration-300 rounded-2xl p-2 ${currentView === item.id ? 'text-emerald-600 bg-emerald-50 scale-110' : 'text-gray-400 group-active:scale-90'}`}>
+                  <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={currentView === item.id ? 2.5 : 2} d={item.icon} /></svg>
+              </div>
+              <span className={`text-[10px] font-black mt-1 transition-colors ${currentView === item.id ? 'text-emerald-700' : 'text-gray-400'}`}>{item.label}</span>
             </button>
           ))}
         </div>
