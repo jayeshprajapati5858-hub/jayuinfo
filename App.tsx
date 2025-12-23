@@ -36,6 +36,50 @@ const fallbackImages = [
     "https://images.unsplash.com/photo-1605000797499-95a51c5269ae?auto=format&fit=crop&w=800&q=80"
 ];
 
+// Fallback / Seed Data to ensure site is never empty
+const seedNewsData = [
+    {
+      title: "રેશન કાર્ડમાં નવું નામ કેવી રીતે ઉમેરવું? જાણો સંપૂર્ણ પ્રક્રિયા",
+      category: "યોજના",
+      summary: "તમારા પરિવારના નવા સભ્ય અથવા પત્નીનું નામ રેશન કાર્ડમાં ઉમેરવા માટે કયા કયા પુરાવા જોઈએ તેની યાદી.",
+      content: "રેશન કાર્ડ એ માત્ર અનાજ મેળવવાનું સાધન નથી...",
+      image: "https://images.unsplash.com/photo-1633158829585-23ba8f7c8caf?auto=format&fit=crop&q=80&w=1000",
+      date: "20 May 2024"
+    },
+    {
+      title: "સુકન્યા સમૃદ્ધિ યોજના ૨૦૨૪: દીકરીના લગ્ન અને ભણતર માટે સૌથી વધુ વ્યાજ",
+      category: "યોજના",
+      summary: "દીકરીનું ભવિષ્ય સુરક્ષિત કરવા માટે કેન્દ્ર સરકારની આ યોજનામાં ૮.૨% વ્યાજ મળી રહ્યું છે.",
+      content: "કેન્દ્ર સરકાર દ્વારા બેટી બચાવો બેટી પઢાવો અંતર્ગત...",
+      image: "https://images.unsplash.com/photo-1623050040776-37b0c841c6f3?auto=format&fit=crop&q=80&w=1000",
+      date: "21 May 2024"
+    },
+    {
+      title: "કપાસના ભાવમાં તેજી: APMC માં મણનો ભાવ ૧૭૦૦ ને પાર",
+      category: "ખેતીવાડી",
+      summary: "સૌરાષ્ટ્રના માર્કેટ યાર્ડમાં કપાસની આવક ઘટતા ભાવમાં ઉછાળો જોવા મળ્યો.",
+      content: "ચાલુ વર્ષે કપાસનું ઉત્પાદન ઓછું હોવાને કારણે...",
+      image: "https://images.unsplash.com/photo-1599581843324-7e77747e0996?auto=format&fit=crop&q=80&w=1000",
+      date: "22 May 2024"
+    },
+    {
+      title: "ચોમાસાની આગાહી ૨૦૨૪: ગુજરાતમાં ક્યારે થશે એન્ટ્રી?",
+      category: "હવામાન",
+      summary: "હવામાન વિભાગની નવી આગાહી મુજબ આ વર્ષે ચોમાસું સામાન્ય કરતા વહેલું બેસવાની શક્યતા.",
+      content: "ભારતીય હવામાન વિભાગ (IMD) અનુસાર...",
+      image: "https://images.unsplash.com/photo-1515694346937-94d85e41e6f0?auto=format&fit=crop&q=80&w=1000",
+      date: "23 May 2024"
+    },
+    {
+      title: "પીએમ કિસાન સન્માન નિધિ: ૧૭મો હપ્તો ક્યારે આવશે?",
+      category: "ખેતીવાડી",
+      summary: "દેશના કરોડો ખેડૂતો ૧૭મા હપ્તાની રાહ જોઈ રહ્યા છે. જાણો તારીખ.",
+      content: "પ્રધાનમંત્રી કિસાન સન્માન નિધિ યોજના હેઠળ...",
+      image: "https://images.unsplash.com/photo-1625246333195-78d9c38ad449?auto=format&fit=crop&q=80&w=1000",
+      date: "24 May 2024"
+    }
+];
+
 const NoticeTicker = ({ notices }: { notices: any[] }) => {
   const defaultNotices = [
     { title: 'પીએમ કિસાન યોજના (PM Kisan) 19મા હપ્તાની અપડેટ. e-KYC કરાવી લેવું.' },
@@ -114,24 +158,48 @@ const App: React.FC = () => {
   }, [location]);
 
   // Initial Load from DB
-  useEffect(() => {
-    const loadInitialData = async () => {
-      try {
-        const newsRes = await pool.query('SELECT * FROM news ORDER BY id DESC LIMIT 5');
-        setHomeNews(newsRes.rows);
-
-        const noticeRes = await pool.query('SELECT * FROM notices ORDER BY id DESC LIMIT 5');
-        setTickerNotices(noticeRes.rows);
-        setHasNewNotices(noticeRes.rows.length > 0);
-        if (noticeRes.rows.length > 0) {
-           setFeaturedNotice(noticeRes.rows[0]);
-        }
-      } catch (e) {
-        console.error("DB Load Error", e);
+  const loadInitialData = useCallback(async () => {
+    try {
+      // 1. Check/Create Table
+      await pool.query(`
+          CREATE TABLE IF NOT EXISTS news (
+              id SERIAL PRIMARY KEY, title TEXT, category TEXT, summary TEXT, content TEXT, image TEXT, date TEXT, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+          )
+      `);
+      
+      // 2. Load Data
+      const newsRes = await pool.query('SELECT * FROM news ORDER BY id DESC LIMIT 5');
+      
+      // 3. SEEDING LOGIC: If DB is empty, populate immediately
+      if (newsRes.rows.length === 0) {
+          console.log("DB Empty: Seeding initial data...");
+          for (const article of seedNewsData) {
+              await pool.query(
+                  `INSERT INTO news (title, category, summary, content, image, date) VALUES ($1, $2, $3, $4, $5, $6)`,
+                  [article.title, article.category, article.summary, article.content, article.image, article.date]
+              );
+          }
+          // Fetch again after seeding
+          const seededRes = await pool.query('SELECT * FROM news ORDER BY id DESC LIMIT 5');
+          setHomeNews(seededRes.rows);
+      } else {
+          setHomeNews(newsRes.rows);
       }
-    };
-    loadInitialData();
+
+      const noticeRes = await pool.query('SELECT * FROM notices ORDER BY id DESC LIMIT 5');
+      setTickerNotices(noticeRes.rows);
+      setHasNewNotices(noticeRes.rows.length > 0);
+      if (noticeRes.rows.length > 0) {
+         setFeaturedNotice(noticeRes.rows[0]);
+      }
+    } catch (e) {
+      console.error("DB Load Error", e);
+    }
   }, []);
+
+  useEffect(() => {
+    loadInitialData();
+  }, [loadInitialData]);
 
   // Helper to prevent frequent API calls
   const shouldFetch = (key: string, minutes: number) => {
