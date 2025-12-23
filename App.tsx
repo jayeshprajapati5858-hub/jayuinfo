@@ -1,5 +1,5 @@
 
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import Header from './components/Header';
 import SearchBar from './components/SearchBar';
 import { BeneficiaryList } from './components/BeneficiaryList';
@@ -26,6 +26,7 @@ import { PrivacyPolicy, TermsConditions } from './components/LegalPages';
 import { beneficiaryData } from './data/beneficiaries';
 import { Beneficiary } from './types';
 import { pool } from './utils/db';
+import { GoogleGenAI, Type } from "@google/genai";
 
 const normalizeToSkeleton = (text: string) => {
   let normalized = text.toLowerCase();
@@ -69,13 +70,47 @@ const App: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [currentView, setCurrentView] = useState<'home' | 'search' | 'services' | 'panchayat' | 'more' | 'privacy' | 'terms'>('home');
   const [activeService, setActiveService] = useState<ServiceType | null>(null);
+  const [isSyncingNews, setIsSyncingNews] = useState(false);
   const [hasNewNotices, setHasNewNotices] = useState(false);
   const [hasNewJobs, setHasNewJobs] = useState(false);
   const [tickerNotices, setTickerNotices] = useState<any[]>([]);
   const [homeNews, setHomeNews] = useState<any[]>([]);
   const [featuredNotice, setFeaturedNotice] = useState<any>(null);
 
-  const checkUpdates = async () => {
+  const triggerBackgroundSync = useCallback(async () => {
+      if (isSyncingNews) return;
+      const todayStr = new Date().toLocaleDateString('gu-IN');
+      try {
+          const res = await pool.query('SELECT id FROM news WHERE date = $1 LIMIT 1', [todayStr]);
+          if (res.rows.length === 0) {
+              console.log("App Main Sync: Missing news for today. Triggering...");
+              setIsSyncingNews(true);
+              const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+              const prompt = `Write 8 authentic Gujarati news articles for ${todayStr}. Focus: Gujarat Govt Agriculture schemes, local Saurashtra weather, and PM-Kisan. Return JSON array.`;
+              const aiRes = await ai.models.generateContent({
+                  model: "gemini-3-flash-preview",
+                  contents: prompt,
+                  config: { responseMimeType: "application/json" }
+              });
+              const news = JSON.parse(aiRes.text || "[]");
+              for (const item of news) {
+                  await pool.query(
+                      `INSERT INTO news (title, summary, content, category, date) VALUES ($1, $2, $3, $4, $5)`,
+                      [item.title, item.summary, item.content, item.category || 'સમાચાર', todayStr]
+                  );
+              }
+              // Refresh home news
+              const newsRes = await pool.query('SELECT * FROM news ORDER BY id DESC LIMIT 3');
+              setHomeNews(newsRes.rows);
+          }
+      } catch (err) {
+          console.error("BG Sync Failed:", err);
+      } finally {
+          setIsSyncingNews(false);
+      }
+  }, [isSyncingNews]);
+
+  const checkUpdates = useCallback(async () => {
       const oneDayMs = 24 * 60 * 60 * 1000;
       const now = Date.now();
       
@@ -89,6 +124,9 @@ const App: React.FC = () => {
 
           const newsRes = await pool.query('SELECT * FROM news ORDER BY id DESC LIMIT 3');
           setHomeNews(newsRes.rows);
+          
+          // Trigger sync if no news for today
+          triggerBackgroundSync();
 
           const jobRes = await pool.query('SELECT * FROM jobs ORDER BY id DESC LIMIT 1');
           const recentJob = jobRes.rows.some((j: any) => (now - new Date(j.created_at || Date.now()).getTime()) < oneDayMs);
@@ -96,13 +134,13 @@ const App: React.FC = () => {
       } catch (err) {
           console.error("Fetch error:", err);
       }
-  };
+  }, [triggerBackgroundSync]);
 
   useEffect(() => {
     checkUpdates();
-    const interval = setInterval(checkUpdates, 15000);
+    const interval = setInterval(checkUpdates, 60000); // Check every minute
     return () => clearInterval(interval);
-  }, []);
+  }, [checkUpdates]);
 
   const filteredData = useMemo(() => {
     if (!searchQuery.trim()) return beneficiaryData;
@@ -140,15 +178,21 @@ const App: React.FC = () => {
   ];
 
   return (
-    <div className="min-h-screen flex flex-col bg-[#F9FAFB] font-sans text-gray-900">
+    <div className="min-h-screen flex flex-col bg-[#F9FAFB] font-sans text-gray-900 relative">
       <Header />
       <div className="h-[60px]"></div>
       <NoticeTicker notices={tickerNotices} />
       
+      {isSyncingNews && (
+        <div className="absolute top-[65px] left-1/2 -translate-x-1/2 z-[60] bg-white px-4 py-1.5 rounded-full shadow-lg border border-indigo-100 flex items-center gap-2 animate-bounce">
+           <span className="w-2 h-2 bg-indigo-500 rounded-full animate-ping"></span>
+           <span className="text-[10px] font-black text-indigo-700 uppercase tracking-widest">આજના સમાચાર તૈયાર થઈ રહ્યા છે...</span>
+        </div>
+      )}
+
       <main className="flex-grow w-full max-w-2xl mx-auto px-4 py-6 pb-28">
         {currentView === 'home' && (
           <div className="animate-fade-in space-y-8">
-            {/* HERO: Greeting & Weather */}
             <div className="flex flex-col sm:flex-row gap-4 items-stretch">
                 <div className="flex-1 bg-white rounded-3xl p-6 shadow-sm border border-gray-100 flex flex-col justify-between relative overflow-hidden min-h-[140px]">
                     <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-50 rounded-full blur-3xl -mr-16 -mt-16"></div>
@@ -163,7 +207,6 @@ const App: React.FC = () => {
                 <div className="sm:w-1/3"><WeatherWidget /></div>
             </div>
 
-            {/* ACTION CARD: DBT SEARCH */}
             <div onClick={() => setCurrentView('search')} className="bg-emerald-600 rounded-[2rem] p-6 shadow-xl shadow-emerald-200/50 cursor-pointer transform active:scale-[0.98] transition-all group relative overflow-hidden">
                 <div className="absolute top-0 right-0 w-48 h-48 bg-white/10 rounded-full blur-3xl -mr-16 -mt-16 group-hover:scale-110 transition-transform duration-700"></div>
                 <div className="flex items-center gap-6 relative z-10">
@@ -180,7 +223,6 @@ const App: React.FC = () => {
                 </div>
             </div>
 
-            {/* QUICK SERVICES GRID */}
             <div>
                 <div className="flex items-center justify-between px-1 mb-5">
                     <h3 className="text-xs font-black text-gray-400 uppercase tracking-[0.2em] flex items-center gap-2">
@@ -201,9 +243,7 @@ const App: React.FC = () => {
                 </div>
             </div>
 
-            {/* RECENT UPDATES: NEWS & NOTICE */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {/* News Preview */}
                 <div className="space-y-4">
                     <div className="flex items-center justify-between px-1">
                         <h3 className="text-xs font-black text-gray-400 uppercase tracking-[0.2em]">તાજા સમાચાર</h3>
@@ -211,7 +251,7 @@ const App: React.FC = () => {
                     </div>
                     <div className="space-y-3">
                         {homeNews.length === 0 ? (
-                            <div className="bg-gray-50 border border-dashed border-gray-200 rounded-2xl p-6 text-center text-xs text-gray-400 font-bold">સમાચાર લોડ થઈ રહ્યા છે...</div>
+                            <div className="bg-white border border-dashed border-gray-200 rounded-2xl p-6 text-center text-xs text-gray-400 font-bold">સમાચાર લોડ થઈ રહ્યા છે...</div>
                         ) : homeNews.map((article: any) => (
                             <div key={article.id} onClick={() => handleServiceClick('news')} className="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow cursor-pointer">
                                 <span className="text-[9px] font-black text-indigo-600 uppercase mb-1 block tracking-wider">{article.category}</span>
@@ -221,7 +261,6 @@ const App: React.FC = () => {
                     </div>
                 </div>
 
-                {/* Important Banner */}
                 <div className="space-y-4">
                     <div className="flex items-center justify-between px-1">
                         <h3 className="text-xs font-black text-gray-400 uppercase tracking-[0.2em]">મહત્વની નોટિસ</h3>
@@ -233,14 +272,13 @@ const App: React.FC = () => {
                             <p className="text-[11px] text-gray-500 line-clamp-3 font-medium">{featuredNotice.description}</p>
                         </div>
                     ) : (
-                        <div className="bg-gray-50 border border-dashed border-gray-200 rounded-[2rem] p-6 text-center h-[140px] flex items-center justify-center">
+                        <div className="bg-white border border-dashed border-gray-200 rounded-[2rem] p-6 text-center h-[140px] flex items-center justify-center">
                             <p className="text-xs text-gray-400 font-bold italic">હાલ કોઈ નવી નોટિસ નથી.</p>
                         </div>
                     )}
                 </div>
             </div>
 
-            {/* FEATURED: DOCUMENTS BANNER */}
             <div onClick={() => handleServiceClick('schemes')} className="bg-indigo-700 rounded-[2.5rem] p-6 text-white relative overflow-hidden cursor-pointer shadow-xl shadow-indigo-200 group">
                 <div className="absolute right-0 bottom-0 w-48 h-48 bg-white/10 rounded-full blur-3xl -mr-20 -mb-20"></div>
                 <div className="relative z-10 flex items-center justify-between gap-6">
@@ -254,7 +292,6 @@ const App: React.FC = () => {
                 </div>
             </div>
 
-            {/* BRANDING FOOTER */}
             <div className="text-center pt-8 opacity-20 flex flex-col items-center">
               <div className="w-10 h-1 h-0.5 bg-gray-400 rounded-full mb-4"></div>
               <p className="text-[9px] font-black text-gray-500 uppercase tracking-[0.4em]">Bharada Digital Gram Panchayat Portal • 2024</p>
