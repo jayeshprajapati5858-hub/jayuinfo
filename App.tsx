@@ -185,6 +185,8 @@ const App: React.FC = () => {
                   Topics: PM Kisan 19th installment, Gujarat Agriculture Market Rates, Latest Gujarat Govt Circulars.
                   
                   Generate 4 news articles in GUJARATI.
+                  IMPORTANT: In 'category' field, add source. E.g. "ખેતીવાડી (Source: TV9)".
+                  
                   Return strictly JSON array: [{ "title": "...", "summary": "...", "content": "...", "category": "..." }]`;
                   
                   const aiRes = await ai.models.generateContent({

@@ -37,7 +37,7 @@ const fallbackNews: Article[] = [
         date: getDynamicDate(0),
         summary: "પીએમ કિસાન સન્માન નિધિના ૧૯મા હપ્તાની તારીખ ટૂંક સમયમાં જાહેર થશે. e-KYC કરાવવું ફરજિયાત.",
         content: "કેન્દ્ર સરકાર દ્વારા ખેડૂતોને આર્થિક મદદ કરવા માટે પીએમ કિસાન યોજના ચલાવવામાં આવે છે. ૧૮મો હપ્તો મળી ચૂક્યો છે અને હવે ૧૯મા હપ્તાની રાહ જોવાઈ રહી છે. ફેબ્રુઆરી ૨૦૨૫ ના અંત સુધીમાં અથવા માર્ચની શરૂઆતમાં આ હપ્તો જમા થવાની શક્યતા છે. જે ખેડૂતોનું e-KYC બાકી હોય તેમણે તાત્કાલિક કરાવી લેવું.",
-        category: "ખેતીવાડી",
+        category: "ખેતીવાડી (સોર્સ: PM Portal)",
         image: fallbackImages[0]
     },
     {
@@ -46,7 +46,7 @@ const fallbackNews: Article[] = [
         date: getDynamicDate(0),
         summary: "સૌરાષ્ટ્રના યાર્ડમાં આજે કપાસ અને મગફળીની આવક સામાન્ય રહી. જાણો આજના ભાવ.",
         content: "આજે રાજકોટ, ગોંડલ અને ઊંઝા માર્કેટ યાર્ડમાં મિશ્ર વાતાવરણ જોવા મળ્યું હતું. કપાસના ભાવમાં મણે ૧૦-૨૦ રૂપિયાનો સુધારો જોવા મળ્યો છે. જીરુંની આવક શરૂ થવાની તૈયારીમાં છે.",
-        category: "બજાર ભાવ",
+        category: "બજાર ભાવ (સોર્સ: APMC)",
         image: fallbackImages[4]
     }
 ];
@@ -112,19 +112,21 @@ const NewsSection: React.FC = () => {
       Perform a Google Search to find the absolute LATEST news for farmers in Gujarat for today: ${new Date().toLocaleDateString('en-GB')}.
       
       Search specifically for:
-      1. "PM Kisan 19th installment date 2025 status"
-      2. "Today's APMC market rates Gujarat ${new Date().toLocaleDateString('en-GB')}"
-      3. "Gujarat Government Agriculture Schemes notifications February 2025"
-      4. "Weather forecast Gujarat today"
+      1. "PM Kisan 19th installment date 2025 official news today"
+      2. "Today's APMC market rates Gujarat ${new Date().toLocaleDateString('en-GB')} live"
+      3. "Gujarat Government Agriculture Schemes notification February 2025"
+      4. "Weather forecast Gujarat today IMD"
 
       Based on the search results, generate 4 news articles in GUJARATI language.
+      
+      IMPORTANT: In the 'category' field, include the Source Name. Example: "ખેતીવાડી (સોર્સ: TV9)" or "યોજના (સોર્સ: PM India)".
       
       Format strictly as JSON array:
       [{
         "title": "Headline in Gujarati",
         "summary": "Short summary in Gujarati",
         "content": "Detailed report (min 60 words) in Gujarati",
-        "category": "Category (e.g. ખેતીવાડી, યોજના, સમાચાર)"
+        "category": "Category with Source Name"
       }]
       `;
 
@@ -153,12 +155,6 @@ const NewsSection: React.FC = () => {
       const parsedNews = JSON.parse(response.text || "[]");
 
       if (parsedNews.length > 0) {
-        // Clear old news for today to ensure freshness if forced
-        if (force) {
-             // Optional: strategy to keep history or wipe. 
-             // For now, we append/update.
-        }
-
         let index = 0;
         for (const item of parsedNews) {
           if (!item.title || !item.content) continue;
@@ -197,7 +193,7 @@ const NewsSection: React.FC = () => {
       
       if (data.length > 0) {
           setNewsList(data);
-          // Check if we have data for TODAY using exact string match
+          // Check if we have data for TODAY
           const hasToday = data.some((n: any) => n.date === todayStr);
           if (!hasToday) {
              console.log("Date mismatch or old data. Syncing fresh news...");
@@ -224,13 +220,13 @@ const NewsSection: React.FC = () => {
              <div className="inline-block bg-emerald-50 px-4 py-1.5 rounded-full border border-emerald-100">
                 <span className="text-[10px] font-black text-emerald-700 uppercase tracking-widest flex items-center gap-2">
                     <span className={`w-2 h-2 rounded-full ${syncing ? 'bg-orange-500 animate-ping' : 'bg-emerald-500'}`}></span>
-                    {syncing ? 'ઇન્ટરનેટ પરથી માહિતી લેવાઈ રહી છે...' : `આજની તારીખ: ${todayStr}`}
+                    {syncing ? 'Google પરથી લાઈવ માહિતી લેવાઈ રહી છે...' : `આજની તારીખ: ${todayStr}`}
                 </span>
              </div>
              {!syncing && (
-                <button onClick={() => autoSyncDailyNews(true)} className="text-[10px] text-emerald-600 font-bold underline cursor-pointer hover:text-emerald-800 flex items-center gap-1">
-                   <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
-                   તાજા સમાચાર રિફ્રેશ કરો (Live Search)
+                <button onClick={() => autoSyncDailyNews(true)} className="text-[10px] text-emerald-600 font-bold underline cursor-pointer hover:text-emerald-800 flex items-center gap-1 bg-white px-3 py-1 rounded-full shadow-sm border border-emerald-100">
+                   <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                   લાઈવ સમાચાર રિફ્રેશ કરો (Live Search)
                 </button>
              )}
           </div>
@@ -241,11 +237,20 @@ const NewsSection: React.FC = () => {
         {loading && newsList.length === 0 ? (
           <div className="text-center py-20 opacity-30 flex flex-col items-center gap-4">
              <div className="w-8 h-8 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin"></div>
-             <p>સમાચાર લોડ થઈ રહ્યા છે...</p>
+             <p>Google પરથી સમાચાર લોડ થઈ રહ્યા છે...</p>
           </div>
         ) : (
           newsList.map((article, idx) => (
-            <div key={article.id || idx} className="bg-white rounded-[3rem] shadow-sm border border-gray-100 overflow-hidden group hover:shadow-2xl transition-all duration-500">
+            <div key={article.id || idx} className="bg-white rounded-[3rem] shadow-sm border border-gray-100 overflow-hidden group hover:shadow-2xl transition-all duration-500 relative">
+              
+              {/* Live Badge for Today's News */}
+              {article.date === todayStr && (
+                  <div className="absolute top-4 right-4 z-10 bg-red-600 text-white text-[10px] font-black px-3 py-1 rounded-full shadow-lg flex items-center gap-1 animate-pulse">
+                      <span className="w-1.5 h-1.5 bg-white rounded-full"></span>
+                      LIVE from Google
+                  </div>
+              )}
+
               <div className="aspect-[16/9] w-full bg-gray-100 relative overflow-hidden">
                 {article.image ? (
                   <img src={article.image} alt={article.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-1000" loading="lazy" />
@@ -253,13 +258,15 @@ const NewsSection: React.FC = () => {
                   <img src={fallbackImages[idx % fallbackImages.length]} alt="Fallback" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-1000 opacity-90" />
                 )}
                 <div className="absolute top-6 left-6">
-                  <span className="text-[10px] font-black px-4 py-1.5 rounded-full uppercase bg-white/90 text-emerald-700 backdrop-blur-md shadow-lg">{article.category}</span>
+                  <span className="text-[10px] font-black px-4 py-1.5 rounded-full uppercase bg-white/90 text-emerald-700 backdrop-blur-md shadow-lg border border-emerald-100">
+                    {article.category}
+                  </span>
                 </div>
               </div>
 
               <div className="p-8 md:p-12">
                 <p className="text-[10px] text-gray-400 font-bold mb-4 flex items-center gap-2">
-                   <span className={`w-1.5 h-1.5 rounded-full ${article.date === todayStr ? 'bg-green-500 animate-pulse' : 'bg-gray-300'}`}></span>
+                   <span className={`w-1.5 h-1.5 rounded-full ${article.date === todayStr ? 'bg-green-500' : 'bg-gray-300'}`}></span>
                    {article.date}
                 </p>
                 <h3 className="text-2xl md:text-3xl font-black text-gray-900 mb-6 cursor-pointer group-hover:text-emerald-600 transition-colors leading-tight" onClick={() => setSelectedId(selectedId === article.id ? null : article.id!)}>
