@@ -44,6 +44,13 @@ const normalizeToSkeleton = (text: string) => {
   return normalized;
 };
 
+// Fallback images in case AI generation fails
+const fallbackImages = [
+    "https://images.unsplash.com/photo-1625246333195-78d9c38ad449?auto=format&fit=crop&w=800&q=80",
+    "https://images.unsplash.com/photo-1595113316349-9fa4eb24f884?auto=format&fit=crop&w=800&q=80",
+    "https://images.unsplash.com/photo-1500937386664-56d1dfef3854?auto=format&fit=crop&w=800&q=80"
+];
+
 const NoticeTicker = ({ notices }: { notices: any[] }) => {
   const defaultNotices = [
     { title: 'કૃષિ સહાય પેકેજની યાદી જાહેર. ખેડૂતોએ તાત્કાલિક બેંક DBT ચાલુ કરાવવું.' },
@@ -77,13 +84,28 @@ const App: React.FC = () => {
   const [homeNews, setHomeNews] = useState<any[]>([]);
   const [featuredNotice, setFeaturedNotice] = useState<any>(null);
 
+  // Helper to prevent frequent DB calls
+  const shouldFetch = (key: string, minutes: number) => {
+      const last = localStorage.getItem(key);
+      if (!last) return true;
+      const diff = Date.now() - parseInt(last);
+      return diff > minutes * 60 * 1000;
+  };
+
   const triggerBackgroundSync = useCallback(async () => {
-      if (isSyncingNews) return;
+      // Prevent sync if quota is exceeded or done recently
+      if (isSyncingNews || !shouldFetch('lastNewsSync', 360) || localStorage.getItem('db_quota_exceeded') === 'true') return;
+      
       const todayStr = new Date().toLocaleDateString('gu-IN');
       try {
-          const res = await pool.query('SELECT id, image FROM news WHERE date = $1', [todayStr]);
+          // Check DB but catch quota error
+          let res;
+          try {
+             res = await pool.query('SELECT id, image FROM news WHERE date = $1', [todayStr]);
+          } catch (e) {
+             throw e; // Let main catch handle it
+          }
           
-          // Check if news needs to be generated or images need to be backfilled
           const needsGeneration = res.rows.length === 0;
           const needsImages = res.rows.some((row: any) => !row.image);
 
@@ -95,9 +117,17 @@ const App: React.FC = () => {
 
               if (needsGeneration) {
                   // 1. Generate News Content if missing
-                  const prompt = `Generate 5 high-quality, long-form Gujarati news articles for ${todayStr}. These are for a professional village portal to get AdSense approval. 
-                  Focus: Gujarat Government Agriculture (i-Khedut), educational scholarship deadlines, weather alerts, and PM-Kisan status. 
-                  Content must be original, helpful, and at least 300 words each. Return JSON array with title, summary, content, category.`;
+                  const prompt = `You are a Gujarati News Editor. Today is ${todayStr}.
+                  Generate 5 *FRESH* and *LATEST* news articles relevant to farmers in Gujarat.
+                  
+                  Topics to cover (Real-time simulation):
+                  1. Current Weather Forecast (Monsoon/Winter/Summer based on current month).
+                  2. Latest Market Prices (APMC) for Cotton, Groundnut, Jeera.
+                  3. New Government Subsidy or Scheme announcements (i-Khedut).
+                  4. General Gujarat state news relevant to villages.
+
+                  The content MUST be in Gujarati language.
+                  Return a JSON Array with: title, summary, content, category.`;
                   
                   const aiRes = await ai.models.generateContent({
                       model: "gemini-3-flash-preview",
@@ -121,38 +151,48 @@ const App: React.FC = () => {
                   });
                   newsData = JSON.parse(aiRes.text || "[]");
               } else {
-                  // Fetch existing titles to regenerate images for
                   const existingRes = await pool.query('SELECT id, title FROM news WHERE date = $1 AND (image IS NULL OR image = \'\')', [todayStr]);
                   newsData = existingRes.rows;
               }
               
+              let index = 0;
               for (const item of newsData) {
                   if (!item.title) continue;
 
-                  // 2. Generate News Image (Switched to gemini-2.5-flash-image to fix 403)
                   let imageUrl = null;
                   try {
-                    const imgRes = await ai.models.generateContent({
-                        model: 'gemini-2.5-flash-image',
-                        contents: { 
-                            parts: [{ 
-                                text: `A professional, realistic news photograph related to: ${item.title}. The setting should be rural Gujarat, India. High resolution, 16:9 ratio. No text overlays.` 
-                            }] 
-                        },
-                        config: { imageConfig: { aspectRatio: "16:9" } }
-                    });
-                    
-                    const parts = imgRes.candidates?.[0]?.content?.parts || [];
-                    for (const p of parts) {
-                        if (p.inlineData) { 
-                          imageUrl = `data:image/png;base64,${p.inlineData.data}`; 
-                          break; 
+                    if (localStorage.getItem('img_quota_exceeded') !== 'true') {
+                        const imgRes = await ai.models.generateContent({
+                            model: 'gemini-2.5-flash-image',
+                            contents: { 
+                                parts: [{ 
+                                    text: `A professional, realistic news photograph related to: ${item.title}. The setting should be rural Gujarat, India. High resolution, 16:9 ratio. No text overlays.` 
+                                }] 
+                            },
+                            config: { imageConfig: { aspectRatio: "16:9" } }
+                        });
+                        
+                        const parts = imgRes.candidates?.[0]?.content?.parts || [];
+                        for (const p of parts) {
+                            if (p.inlineData) { 
+                              imageUrl = `data:image/png;base64,${p.inlineData.data}`; 
+                              break; 
+                            }
                         }
                     }
-                  } catch(e) { console.warn("Img Gen Fail", e); }
+                  } catch(e: any) { 
+                      console.warn("Img Gen Fail", e); 
+                      if (e?.message?.includes('429') || e?.message?.includes('quota')) {
+                          localStorage.setItem('img_quota_exceeded', 'true');
+                      }
+                  }
+
+                  // Use fallback if generation failed
+                  if (!imageUrl) {
+                      imageUrl = fallbackImages[index % fallbackImages.length];
+                  }
 
                   if (imageUrl) {
-                      // 3. Save or Update to DB
                       if (needsGeneration) {
                           const exists = await pool.query('SELECT id FROM news WHERE title = $1', [item.title]);
                           if (exists.rows.length === 0) {
@@ -162,26 +202,49 @@ const App: React.FC = () => {
                             );
                           }
                       } else if (item.id) {
-                          // Update existing record
                           await pool.query('UPDATE news SET image = $1 WHERE id = $2', [imageUrl, item.id]);
                       }
                   }
+                  index++;
               }
+              localStorage.setItem('lastNewsSync', Date.now().toString());
+              
               const newsRes = await pool.query('SELECT * FROM news ORDER BY id DESC LIMIT 3');
               setHomeNews(newsRes.rows);
           }
       } catch (err: any) {
-          console.error("BG Sync Failed:", err?.message || err);
+          if (err?.message?.includes('quota') || err?.message?.includes('limit')) {
+             console.warn("BG Sync: DB Quota Exceeded");
+             localStorage.setItem('db_quota_exceeded', 'true');
+          } else {
+             console.error("BG Sync Failed:", err?.message || err);
+          }
       } finally {
           setIsSyncingNews(false);
       }
   }, [isSyncingNews]);
 
   const checkUpdates = useCallback(async () => {
+      // Check quota flag first
+      if (localStorage.getItem('db_quota_exceeded') === 'true') {
+          setTickerNotices([{ title: 'સિસ્ટમ અપડેટ: સર્વર મેન્ટેનન્સ ચાલુ છે. (Demo Mode)' }]);
+          setHomeNews([
+            { id: 101, title: "ખેડૂતો માટે ખુશખબર: પાક વીમા યોજનામાં ફેરફાર", category: "ખેતીવાડી", image: fallbackImages[0] },
+            { id: 102, title: "ધોરણ 10 અને 12 નું પરિણામ જાહેર", category: "શિક્ષણ", image: fallbackImages[1] },
+            { id: 103, title: "સુકન્યા સમૃદ્ધિ યોજનામાં વ્યાજદરમાં વધારો", category: "યોજના", image: fallbackImages[2] }
+          ]);
+          return;
+      }
+
       const oneDayMs = 24 * 60 * 60 * 1000;
       const now = Date.now();
       
       try {
+          // Initialize schema if missing to prevent "relation does not exist" errors
+          await pool.query(`CREATE TABLE IF NOT EXISTS notices (id SERIAL PRIMARY KEY, type TEXT, title TEXT, description TEXT, date_str TEXT, contact_person TEXT, mobile TEXT, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`);
+          await pool.query(`CREATE TABLE IF NOT EXISTS news (id SERIAL PRIMARY KEY, title TEXT, summary TEXT, content TEXT, category TEXT, date TEXT, image TEXT)`);
+          await pool.query(`CREATE TABLE IF NOT EXISTS jobs (id SERIAL PRIMARY KEY, category TEXT, title TEXT, details TEXT, wages TEXT, contact_name TEXT, mobile TEXT, date_str TEXT)`);
+
           const noticeRes = await pool.query('SELECT * FROM notices ORDER BY id DESC LIMIT 5');
           const notices = noticeRes.rows;
           const activeNotices = notices.filter((n: any) => (now - new Date(n.created_at || Date.now()).getTime()) < oneDayMs);
@@ -192,20 +255,32 @@ const App: React.FC = () => {
           const newsRes = await pool.query('SELECT * FROM news ORDER BY id DESC LIMIT 3');
           setHomeNews(newsRes.rows);
           
-          triggerBackgroundSync();
-
           const jobRes = await pool.query('SELECT * FROM jobs ORDER BY id DESC LIMIT 1');
           const recentJob = jobRes.rows.some((j: any) => (now - new Date(j.created_at || Date.now()).getTime()) < oneDayMs);
           setHasNewJobs(recentJob);
-      } catch (err) {
-          console.error("Fetch error:", err);
+
+          triggerBackgroundSync();
+      } catch (err: any) {
+          if (err?.message?.includes('quota') || err?.message?.includes('limit')) {
+             console.warn("App: DB Quota Exceeded. Switching to static.");
+             localStorage.setItem('db_quota_exceeded', 'true');
+             setTickerNotices([{ title: 'સિસ્ટમ અપડેટ: સર્વર મેન્ટેનન્સ ચાલુ છે. (Demo Mode)' }]);
+             setHomeNews([
+                { id: 101, title: "ખેડૂતો માટે ખુશખબર: પાક વીમા યોજનામાં ફેરફાર", category: "ખેતીવાડી", image: fallbackImages[0] },
+                { id: 102, title: "ધોરણ 10 અને 12 નું પરિણામ જાહેર", category: "શિક્ષણ", image: fallbackImages[1] },
+                { id: 103, title: "સુકન્યા સમૃદ્ધિ યોજનામાં વ્યાજદરમાં વધારો", category: "યોજના", image: fallbackImages[2] }
+             ]);
+          } else {
+             console.error("Fetch error:", err);
+             // Fallback for general errors (e.g. relation does not exist handled above by creation, but other errors)
+             setTickerNotices([{ title: 'સિસ્ટમ અપડેટ: ડેટા લોડ થઈ શક્યો નથી. કૃપા કરીને થોડીવાર પછી પ્રયત્ન કરો.' }]);
+          }
       }
   }, [triggerBackgroundSync]);
 
   useEffect(() => {
+    // ONLY fetch on mount
     checkUpdates();
-    const interval = setInterval(checkUpdates, 60000);
-    return () => clearInterval(interval);
   }, [checkUpdates]);
 
   const filteredData = useMemo(() => {
@@ -312,10 +387,16 @@ const App: React.FC = () => {
                     </div>
                     <div className="space-y-3">
                         {homeNews.length === 0 ? (
-                            <div className="bg-white border border-dashed border-gray-200 rounded-2xl p-6 text-center text-xs text-gray-400 font-bold">સમાચાર લોડ થઈ રહ્યા છે...</div>
-                        ) : homeNews.map((article: any) => (
+                            <div className="bg-white border border-dashed border-gray-200 rounded-2xl p-6 text-center text-xs text-gray-400 font-bold">
+                                {hasNewNotices ? "ડેટા અપડેટ થઇ રહ્યો છે..." : "કોઈ સમાચાર નથી અથવા ડેટાબેઝ લિમિટ."}
+                            </div>
+                        ) : homeNews.map((article: any, index) => (
                             <div key={article.id} onClick={() => handleServiceClick('news')} className="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow cursor-pointer overflow-hidden flex items-center gap-4">
-                                {article.image && <img src={article.image} className="w-12 h-12 rounded-lg object-cover shrink-0" />}
+                                {article.image ? (
+                                    <img src={article.image} className="w-12 h-12 rounded-lg object-cover shrink-0" />
+                                ) : (
+                                    <img src={fallbackImages[index % fallbackImages.length]} className="w-12 h-12 rounded-lg object-cover shrink-0 opacity-80" />
+                                )}
                                 <div>
                                     <span className="text-[9px] font-black text-indigo-600 uppercase mb-0.5 block tracking-wider">{article.category}</span>
                                     <h4 className="text-xs font-black text-gray-900 leading-tight line-clamp-2">{article.title}</h4>

@@ -13,6 +13,46 @@ interface Article {
   image?: string;
 }
 
+// Fallback images in case AI generation fails or quota exceeds
+const fallbackImages = [
+    "https://images.unsplash.com/photo-1625246333195-78d9c38ad449?auto=format&fit=crop&w=800&q=80", // Farmer
+    "https://images.unsplash.com/photo-1595113316349-9fa4eb24f884?auto=format&fit=crop&w=800&q=80", // Village
+    "https://images.unsplash.com/photo-1500937386664-56d1dfef3854?auto=format&fit=crop&w=800&q=80", // Field
+    "https://images.unsplash.com/photo-1530933449625-7f58d9b32564?auto=format&fit=crop&w=800&q=80", // Agriculture
+    "https://images.unsplash.com/photo-1605000797499-95a51c5269ae?auto=format&fit=crop&w=800&q=80", // Farming
+    "https://images.unsplash.com/photo-1586771107445-d3ca888129ff?auto=format&fit=crop&w=800&q=80"  // Tech in Agri
+];
+
+const fallbackNews: Article[] = [
+    {
+        id: 101,
+        title: "ખેડૂતો માટે ખુશખબર: પાક વીમા યોજનામાં ફેરફાર",
+        date: "20 May 2024",
+        summary: "રાજ્ય સરકાર દ્વારા ખેડૂતો માટે નવી જાહેરાત કરવામાં આવી છે. હવે પાક નુકસાનનું વળતર ઝડપથી મળશે.",
+        content: "ગાંધીનગર: રાજ્યના કૃષિ મંત્રી રાઘવજી પટેલે ખેડૂતો માટે મહત્વનો નિર્ણય લીધો છે. હવેથી પાક નુકસાન સર્વે 7 દિવસમાં પૂર્ણ કરી સહાય ચૂકવવામાં આવશે. આ વર્ષે અતિવૃષ્ટિ અને કમોસમી વરસાદને કારણે થયેલા નુકસાનનું વળતર દિવાળી પહેલા ચૂકવવાનું આયોજન છે.",
+        category: "ખેતીવાડી",
+        image: "https://images.unsplash.com/photo-1625246333195-78d9c38ad449?auto=format&fit=crop&w=800&q=80"
+    },
+    {
+        id: 102,
+        title: "ધોરણ 10 અને 12 નું પરિણામ જાહેર",
+        date: "20 May 2024",
+        summary: "ગુજરાત બોર્ડ દ્વારા ધોરણ ૧૦ અને ૧૨ ના પરિણામો વેબસાઈટ પર મુકાયા.",
+        content: "ગુજરાત માધ્યમિક અને ઉચ્ચતર માધ્યમિક શિક્ષણ બોર્ડ દ્વારા માર્ચ-૨૦૨૪ માં લેવાયેલી પરીક્ષાનું પરિણામ જાહેર કરવામાં આવ્યું છે. વિદ્યાર્થીઓ બોર્ડની વેબસાઈટ પર અથવા વોટ્સએપ નંબર પર સીટ નંબર મોકલીને પરિણામ મેળવી શકે છે.",
+        category: "શિક્ષણ",
+        image: "https://images.unsplash.com/photo-1523050854058-8df90110c9f1?auto=format&fit=crop&w=800&q=80"
+    },
+    {
+        id: 103,
+        title: "સુકન્યા સમૃદ્ધિ યોજનામાં વ્યાજદરમાં વધારો",
+        date: "20 May 2024",
+        summary: "દીકરીઓના ભવિષ્ય માટે શ્રેષ્ઠ યોજના. હવે મળશે 8.2% વ્યાજ.",
+        content: "કેન્દ્ર સરકારની સુકન્યા સમૃદ્ધિ યોજનામાં હવે વાર્ષિક 8.2% વ્યાજ મળશે. આ યોજનામાં 10 વર્ષથી નાની દીકરીના નામે ખાતું ખોલાવી શકાય છે. જેમાં વાર્ષિક ન્યૂનતમ 250 રૂપિયા જમા કરાવી શકાય છે.",
+        category: "યોજના",
+        image: "https://images.unsplash.com/photo-1623050040776-37b0c841c6f3?auto=format&fit=crop&w=800&q=80"
+    }
+];
+
 const NewsSection: React.FC = () => {
   const [newsList, setNewsList] = useState<Article[]>([]);
   const [loading, setLoading] = useState(true);
@@ -24,16 +64,19 @@ const NewsSection: React.FC = () => {
 
   const todayStr = new Date().toLocaleDateString('gu-IN');
 
-  const generateImageForNews = async (title: string): Promise<string | null> => {
+  const generateImageForNews = async (title: string, index: number): Promise<string> => {
     try {
+      if (localStorage.getItem('img_quota_exceeded') === 'true') {
+          return fallbackImages[index % fallbackImages.length];
+      }
+
       const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-      // Switched to gemini-2.5-flash-image to fix 403 PERMISSION_DENIED
       const response = await ai.models.generateContent({
         model: 'gemini-2.5-flash-image',
         contents: {
           parts: [
             {
-              text: `A realistic, high-quality news photograph for an Indian Gujarati news article titled: "${title}". The image should be journalistic, authentic, and related to agriculture, village life, or government schemes in Gujarat. Do not include text in the image.`,
+              text: `A professional, realistic news photograph related to: "${title}". Indian village context, agriculture, farmers, or government office. High quality, 4k, no text overlay.`,
             },
           ],
         },
@@ -50,24 +93,33 @@ const NewsSection: React.FC = () => {
           return `data:image/png;base64,${part.inlineData.data}`;
         }
       }
-      return null;
-    } catch (err) { 
-        console.error("Image Gen Error:", err);
-        return null; 
+      return fallbackImages[index % fallbackImages.length];
+    } catch (err: any) { 
+        console.warn("Image Gen Skipped (Quota/Error)");
+        if (err?.message?.includes('429') || err?.message?.includes('quota')) {
+            localStorage.setItem('img_quota_exceeded', 'true');
+        }
+        return fallbackImages[index % fallbackImages.length]; 
     }
   };
 
   const autoSyncDailyNews = useCallback(async () => {
-    if (syncing) return;
+    if (syncing || localStorage.getItem('db_quota_exceeded') === 'true') return;
     setSyncing(true);
     try {
       const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
       
-      // 1. Generate Text Content
-      const prompt = `Generate 5 professional Gujarati news articles for ${todayStr}. 
-      Articles must be original, helpful for farmers, and formatted as long-form blog posts (300+ words).
-      Topics: 1. Latest APMC Market trends in Saurashtra. 2. New Subsidy schemes for farmers (i-Khedut). 3. Weather forecast. 4. General village development news.
-      Return as a valid JSON array of objects with title, summary, content, and category.`;
+      const prompt = `You are a Gujarati News Editor. Today is ${todayStr}.
+      Generate 5 *FRESH* and *LATEST* news articles relevant to farmers in Gujarat.
+      
+      Topics to cover (Real-time simulation):
+      1. Current Weather Forecast (Monsoon/Winter/Summer based on current month).
+      2. Latest Market Prices (APMC) for Cotton, Groundnut, Jeera.
+      3. New Government Subsidy or Scheme announcements (i-Khedut).
+      4. General Gujarat state news relevant to villages.
+
+      The content MUST be in Gujarati language.
+      Return a JSON Array with: title, summary, content, category.`;
 
       const response = await ai.models.generateContent({
         model: "gemini-3-flash-preview",
@@ -93,34 +145,36 @@ const NewsSection: React.FC = () => {
       const parsedNews = JSON.parse(response.text || "[]");
 
       if (parsedNews.length > 0) {
+        let index = 0;
         for (const item of parsedNews) {
           if (!item.title || !item.content) continue;
           
-          // Check if article exists
           const existing = await pool.query('SELECT id, image FROM news WHERE title = $1 AND date = $2', [item.title, todayStr]);
           
           if (existing.rows.length === 0) {
-            // New Article: Generate Image and Insert
-            const imageUrl = await generateImageForNews(item.title);
+            const imageUrl = await generateImageForNews(item.title, index);
             await pool.query(
               `INSERT INTO news (title, summary, content, category, date, image) VALUES ($1, $2, $3, $4, $5, $6)`,
               [item.title, item.summary || '', item.content, item.category || 'સમાચાર', todayStr, imageUrl]
             );
           } else if (!existing.rows[0].image) {
-            // Existing Article but Missing Image: Generate Image and Update
-            console.log("Updating missing image for:", item.title);
-            const imageUrl = await generateImageForNews(item.title);
+            const imageUrl = await generateImageForNews(item.title, index);
             if (imageUrl) {
                 await pool.query(`UPDATE news SET image = $1 WHERE id = $2`, [imageUrl, existing.rows[0].id]);
             }
           }
+          index++;
         }
-        // Refresh list
         const refresh = await pool.query('SELECT * FROM news ORDER BY id DESC LIMIT 20');
         setNewsList(refresh.rows);
       }
-    } catch (err) {
-      console.error("Auto-Sync Failed:", err);
+    } catch (err: any) {
+      if (err?.message?.includes('quota') || err?.message?.includes('limit')) {
+          console.warn("Sync Stopped: DB Quota Exceeded");
+          localStorage.setItem('db_quota_exceeded', 'true');
+      } else {
+          console.error("Auto-Sync Failed:", err);
+      }
     } finally {
       setSyncing(false);
     }
@@ -128,34 +182,38 @@ const NewsSection: React.FC = () => {
 
   const fetchNews = useCallback(async () => {
     setLoading(true);
-    try {
-      // Create table if not exists
-      await pool.query(`
-        CREATE TABLE IF NOT EXISTS news (
-          id SERIAL PRIMARY KEY,
-          title TEXT NOT NULL,
-          summary TEXT,
-          content TEXT,
-          category TEXT,
-          date TEXT,
-          image TEXT,
-          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        )
-      `);
+    // If quota already exceeded, skip DB and load fallback
+    if (localStorage.getItem('db_quota_exceeded') === 'true') {
+        setNewsList(fallbackNews);
+        setLoading(false);
+        return;
+    }
 
+    try {
+      await pool.query(`CREATE TABLE IF NOT EXISTS news (id SERIAL PRIMARY KEY, title TEXT, summary TEXT, content TEXT, category TEXT, date TEXT, image TEXT)`);
       const result = await pool.query('SELECT * FROM news ORDER BY id DESC LIMIT 20');
       const data = result.rows;
-      setNewsList(data);
       
-      // If no news for today, or if today's news has no images, trigger sync
-      const todaysNews = data.filter((a: any) => a.date === todayStr);
-      const missingImages = todaysNews.some((a: any) => !a.image);
-      
-      if (todaysNews.length === 0 || missingImages) { 
-          autoSyncDailyNews(); 
+      if (data.length > 0) {
+          setNewsList(data);
+          const todaysNews = data.filter((a: any) => a.date === todayStr);
+          const missingImages = todaysNews.some((a: any) => !a.image);
+          if ((todaysNews.length === 0 || missingImages) && !localStorage.getItem('newsSyncError')) { 
+              autoSyncDailyNews(); 
+          }
+      } else {
+          setNewsList(fallbackNews);
+          autoSyncDailyNews(); // Try to fetch initial news if DB is empty but working
       }
-    } catch (err) { 
-        console.error("Fetch Error:", err);
+    } catch (err: any) { 
+        if (err?.message?.includes('quota') || err?.message?.includes('limit')) {
+            console.warn("DB Quota Exceeded. Switching to static mode.");
+            localStorage.setItem('db_quota_exceeded', 'true');
+            setNewsList(fallbackNews);
+        } else {
+            console.error("Fetch Error:", err);
+            setNewsList(fallbackNews);
+        }
     } finally { 
         setLoading(false); 
     }
@@ -191,10 +249,7 @@ const NewsSection: React.FC = () => {
                 {article.image ? (
                   <img src={article.image} alt={article.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-1000" />
                 ) : (
-                  <div className="w-full h-full flex flex-col items-center justify-center text-gray-300 bg-gray-50">
-                    <svg className="w-16 h-16 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
-                    <span className="text-[10px] font-bold uppercase tracking-widest">Image Loading...</span>
-                  </div>
+                  <img src={fallbackImages[idx % fallbackImages.length]} alt="Fallback" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-1000 opacity-80" />
                 )}
                 <div className="absolute top-6 left-6">
                   <span className="text-[10px] font-black px-4 py-1.5 rounded-full uppercase bg-white/90 text-emerald-700 backdrop-blur-md shadow-lg">{article.category}</span>
@@ -237,8 +292,10 @@ const NewsSection: React.FC = () => {
                   {isAdmin && (
                     <button onClick={async () => {
                       if(confirm('Delete?')) {
-                        await pool.query('DELETE FROM news WHERE id = $1', [article.id]);
-                        setNewsList(newsList.filter(n => n.id !== article.id));
+                        try {
+                            await pool.query('DELETE FROM news WHERE id = $1', [article.id]);
+                            setNewsList(newsList.filter(n => n.id !== article.id));
+                        } catch(e) { alert("Delete failed due to quota limit"); }
                       }
                     }} className="text-red-300 hover:text-red-500 transition-colors">
                       <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
