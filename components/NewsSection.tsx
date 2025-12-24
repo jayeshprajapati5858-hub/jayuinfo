@@ -159,7 +159,14 @@ const NewsSection: React.FC = () => {
     <div className="w-full max-w-4xl mx-auto px-4 py-6 animate-fade-in pb-20">
       <div className="flex justify-between items-center mb-8">
         <div>
-          <h2 className="text-2xl font-black text-gray-900 leading-none">તાજા સમાચાર</h2>
+          <div className="flex items-center gap-2">
+            <h2 className="text-2xl font-black text-gray-900 leading-none">તાજા સમાચાર</h2>
+            {!loading && (
+              <span className="bg-blue-600 text-white text-[10px] font-black px-2 py-0.5 rounded-full shadow-sm">
+                {news.length}
+              </span>
+            )}
+          </div>
           <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mt-1">Daily Village Updates</p>
         </div>
         {isAdmin && (
