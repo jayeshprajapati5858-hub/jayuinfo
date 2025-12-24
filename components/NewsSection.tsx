@@ -55,27 +55,47 @@ const NewsSection: React.FC = () => {
 
   useEffect(() => { fetchNews(); }, []);
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  // Image Compression Logic
+  const compressImage = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = (event) => {
+        const img = new Image();
+        img.src = event.target?.result as string;
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          const MAX_WIDTH = 800; // Limit width
+          const scaleSize = MAX_WIDTH / img.width;
+          canvas.width = MAX_WIDTH;
+          canvas.height = img.height * scaleSize;
+
+          const ctx = canvas.getContext('2d');
+          ctx?.drawImage(img, 0, 0, canvas.width, canvas.height);
+          
+          // Lower quality to 0.6 to significantly reduce size
+          const dataUrl = canvas.toDataURL('image/jpeg', 0.6);
+          resolve(dataUrl);
+        };
+        img.onerror = reject;
+      };
+      reader.onerror = reject;
+    });
+  };
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // Limit to 1.5MB to be safe with SQL query string limits
-    if (file.size > 1.5 * 1024 * 1024) {
-      alert("ફોટો ૧.૫ MB થી નાનો હોવો જોઈએ! કૃપા કરીને નાનો ફોટો પસંદ કરો.");
-      return;
-    }
-
     setUploading(true);
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      setImageUrl(reader.result as string);
+    try {
+      const compressedData = await compressImage(file);
+      setImageUrl(compressedData);
+    } catch (err) {
+      alert("ફોટો પ્રોસેસ કરવામાં ભૂલ આવી!");
+    } finally {
       setUploading(false);
-    };
-    reader.onerror = () => {
-      alert("ફોટો લોડ કરવામાં ભૂલ આવી!");
-      setUploading(false);
-    };
-    reader.readAsDataURL(file);
+    }
   };
 
   const handleLogin = (e: React.FormEvent) => {
@@ -100,7 +120,7 @@ const NewsSection: React.FC = () => {
       alert('સમાચાર પબ્લિશ થઈ ગયા!');
     } catch (error: any) { 
       console.error("Submit news error:", error);
-      alert('ભૂલ પડી: ' + (error.message || 'ડેટાબેઝ કનેક્શન તપાસો'));
+      alert('ભૂલ પડી: ડેટા ટ્રાન્સફર લિમિટ પૂરી થઈ ગઈ હોઈ શકે છે. જૂના સમાચાર ડિલીટ કરો.');
     } finally {
       setIsSubmitting(false);
     }
@@ -143,9 +163,17 @@ const NewsSection: React.FC = () => {
           <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mt-1">Daily Village Updates</p>
         </div>
         {isAdmin && (
-          <button onClick={() => setShowForm(true)} className="bg-blue-600 text-white px-5 py-2.5 rounded-2xl text-xs font-bold shadow-lg shadow-blue-100">
-            નવા સમાચાર +
-          </button>
+          <div className="flex gap-2">
+            <button 
+              onClick={async () => { if(confirm("બધા સમાચાર કાઢી નાખવા છે?")) { await pool.query("DELETE FROM news"); fetchNews(); } }}
+              className="bg-red-50 text-red-600 px-3 py-2.5 rounded-2xl text-[10px] font-black uppercase tracking-wider border border-red-100"
+            >
+              Clear All
+            </button>
+            <button onClick={() => setShowForm(true)} className="bg-blue-600 text-white px-5 py-2.5 rounded-2xl text-xs font-bold shadow-lg shadow-blue-100">
+              નવા સમાચાર +
+            </button>
+          </div>
         )}
       </div>
 
@@ -222,7 +250,7 @@ const NewsSection: React.FC = () => {
       {/* Form Modal */}
       {showForm && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-md z-[100] flex items-center justify-center p-4">
-          <div className="bg-white rounded-[2.5rem] w-full max-w-lg p-8 shadow-2xl animate-fade-in max-h-[90vh] overflow-y-auto no-scrollbar">
+          <div className="bg-white rounded-[2.5rem] w-full max-lg p-8 shadow-2xl animate-fade-in max-h-[90vh] overflow-y-auto no-scrollbar">
             <div className="flex justify-between items-center mb-6">
               <h3 className="text-2xl font-black text-gray-900">નવા સમાચાર લખો</h3>
               <button onClick={() => setShowForm(false)} className="bg-gray-100 p-2 rounded-full hover:bg-gray-200 transition-colors">✕</button>
@@ -259,6 +287,7 @@ const NewsSection: React.FC = () => {
                     </label>
                   )}
                 </div>
+                <p className="text-[9px] text-gray-400 text-center font-bold uppercase italic">ફોટો ઓટોમેટિક નાનો (Compress) થઈ જશે.</p>
               </div>
 
               <div className="space-y-2">
