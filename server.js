@@ -21,25 +21,36 @@ const pool = new Pool({
   }
 });
 
-// Initialize DB Table Automatically on Startup
+// Initialize DB Tables Automatically on Startup (News Removed)
 const initDb = async () => {
-  const createTableQuery = `
-    CREATE TABLE IF NOT EXISTS news (
+  const createTablesQuery = `
+    CREATE TABLE IF NOT EXISTS notices (
       id SERIAL PRIMARY KEY,
-      title TEXT NOT NULL,
+      type TEXT,
+      title TEXT,
+      description TEXT,
+      date_str TEXT,
+      contact_person TEXT,
+      mobile TEXT,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+    CREATE TABLE IF NOT EXISTS marketplace (
+      id SERIAL PRIMARY KEY,
       category TEXT NOT NULL,
-      summary TEXT NOT NULL,
-      content TEXT NOT NULL,
-      image TEXT,
-      date TEXT NOT NULL,
+      title TEXT NOT NULL,
+      price TEXT NOT NULL,
+      description TEXT,
+      owner_name TEXT NOT NULL,
+      mobile TEXT NOT NULL,
+      date_str TEXT NOT NULL,
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );
   `;
   try {
     const client = await pool.connect();
-    await client.query(createTableQuery);
+    await client.query(createTablesQuery);
     client.release();
-    console.log("✅ Database Connected & Table Verified");
+    console.log("✅ Database Connected & Tables Verified");
   } catch (err) {
     console.error("❌ Database Connection Error:", err);
   }
@@ -48,53 +59,8 @@ const initDb = async () => {
 // Run Init
 initDb();
 
-// Root route
 app.get('/', (req, res) => {
-  res.send('Backend API is Running. Access /api/news for data.');
-});
-
-// GET: Fetch all news
-app.get('/api/news', async (req, res) => {
-  try {
-    const result = await pool.query('SELECT * FROM news ORDER BY id DESC');
-    res.json(result.rows);
-  } catch (err) {
-    console.error("Error fetching news:", err);
-    res.status(500).json({ error: 'Database error fetching news' });
-  }
-});
-
-// POST: Add new news
-app.post('/api/news', async (req, res) => {
-  const { title, category, summary, content, image, date } = req.body;
-  
-  try {
-    const query = `
-      INSERT INTO news (title, category, summary, content, image, date)
-      VALUES ($1, $2, $3, $4, $5, $6)
-      RETURNING *
-    `;
-    const values = [title, category, summary, content, image, date];
-    const result = await pool.query(query, values);
-    
-    console.log("Saved News Item ID:", result.rows[0].id);
-    res.status(201).json(result.rows[0]);
-  } catch (err) {
-    console.error("Error saving news:", err);
-    res.status(500).json({ error: 'Failed to save news to database' });
-  }
-});
-
-// DELETE: Remove news
-app.delete('/api/news/:id', async (req, res) => {
-  const { id } = req.params;
-  try {
-    await pool.query('DELETE FROM news WHERE id = $1', [id]);
-    res.json({ message: 'Deleted successfully' });
-  } catch (err) {
-    console.error("Error deleting news:", err);
-    res.status(500).json({ error: 'Failed to delete' });
-  }
+  res.send('Backend API is Running.');
 });
 
 app.listen(port, () => {

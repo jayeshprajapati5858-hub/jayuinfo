@@ -13,7 +13,6 @@ import AgriRental from './AgriRental';
 import GeneralComplaints from './GeneralComplaints';
 import StudentCorner from './StudentCorner';
 import BloodDonors from './BloodDonors';
-import NewsSection from './NewsSection';
 import VillageMarket from './VillageMarket';
 
 const ServiceView: React.FC = () => {
@@ -34,14 +33,12 @@ const ServiceView: React.FC = () => {
       case 'complaint': return <GeneralComplaints />;
       case 'student': return <StudentCorner />;
       case 'blood': return <BloodDonors />;
-      case 'news': return <NewsSection />;
       case 'marketplace': return <VillageMarket />;
       default: return <div className="text-center py-20 text-gray-400">સેવા ઉપલબ્ધ નથી.</div>;
     }
   };
 
   const servicesList = [
-      { id: 'news', label: 'સમાચાર', color: 'bg-indigo-600' },
       { id: 'marketplace', label: 'ગ્રામ્ય હાટ', color: 'bg-amber-600' },
       { id: 'notice', label: 'નોટિસ', color: 'bg-orange-600' },
       { id: 'rojgar', label: 'રોજગાર', color: 'bg-emerald-600' },
