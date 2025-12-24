@@ -46,12 +46,23 @@ const createTableQuery = `
     date_str TEXT NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
   );
+
+  CREATE TABLE IF NOT EXISTS news (
+    id SERIAL PRIMARY KEY,
+    category TEXT NOT NULL,
+    title TEXT NOT NULL,
+    content TEXT NOT NULL,
+    image_url TEXT,
+    date_str TEXT NOT NULL,
+    author TEXT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+  );
 `;
 
 const initDb = async () => {
   try {
     await pool.query(createTableQuery);
-    console.log("✅ Tables verified (notices, jobs, marketplace). News removed.");
+    console.log("✅ Tables verified (notices, jobs, marketplace, news).");
   } catch (err) {
     console.error("❌ Database Init Error:", err);
   } finally {

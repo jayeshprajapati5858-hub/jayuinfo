@@ -20,6 +20,7 @@ const NewsSection: React.FC = () => {
   const [content, setContent] = useState('');
   const [imageUrl, setImageUrl] = useState('');
   const [uploading, setUploading] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const initDb = async () => {
     try {
@@ -35,7 +36,9 @@ const NewsSection: React.FC = () => {
           created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
       `);
-    } catch (e) { console.error(e); }
+    } catch (e) { 
+      console.error("News table init error:", e); 
+    }
   };
 
   const fetchNews = async () => {
@@ -44,7 +47,9 @@ const NewsSection: React.FC = () => {
       await initDb();
       const res = await pool.query('SELECT * FROM news ORDER BY id DESC');
       setNews(res.rows);
-    } catch (e) { console.error(e); }
+    } catch (e) { 
+      console.error("Fetch news error:", e); 
+    }
     finally { setLoading(false); }
   };
 
@@ -54,8 +59,9 @@ const NewsSection: React.FC = () => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    if (file.size > 2 * 1024 * 1024) {
-      alert("ફોટો ૨ MB થી નાનો હોવો જોઈએ!");
+    // Limit to 1.5MB to be safe with SQL query string limits
+    if (file.size > 1.5 * 1024 * 1024) {
+      alert("ફોટો ૧.૫ MB થી નાનો હોવો જોઈએ! કૃપા કરીને નાનો ફોટો પસંદ કરો.");
       return;
     }
 
@@ -63,6 +69,10 @@ const NewsSection: React.FC = () => {
     const reader = new FileReader();
     reader.onloadend = () => {
       setImageUrl(reader.result as string);
+      setUploading(false);
+    };
+    reader.onerror = () => {
+      alert("ફોટો લોડ કરવામાં ભૂલ આવી!");
       setUploading(false);
     };
     reader.readAsDataURL(file);
@@ -76,16 +86,24 @@ const NewsSection: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isSubmitting) return;
+
+    setIsSubmitting(true);
     try {
       await pool.query(
         `INSERT INTO news (category, title, content, image_url, date_str, author) VALUES ($1, $2, $3, $4, $5, $6)`,
-        [category, title, content, imageUrl, new Date().toLocaleDateString('gu-IN'), 'એડમિન']
+        [category, title, content, imageUrl || null, new Date().toLocaleDateString('gu-IN'), 'એડમિન']
       );
-      fetchNews();
+      await fetchNews();
       setShowForm(false);
       resetForm();
       alert('સમાચાર પબ્લિશ થઈ ગયા!');
-    } catch (e) { alert('ભૂલ પડી!'); }
+    } catch (error: any) { 
+      console.error("Submit news error:", error);
+      alert('ભૂલ પડી: ' + (error.message || 'ડેટાબેઝ કનેક્શન તપાસો'));
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const resetForm = () => {
@@ -97,8 +115,12 @@ const NewsSection: React.FC = () => {
 
   const handleDelete = async (id: number) => {
     if(confirm('આ સમાચાર કાઢી નાખવા છે?')) {
-      await pool.query('DELETE FROM news WHERE id = $1', [id]);
-      setNews(news.filter(n => n.id !== id));
+      try {
+        await pool.query('DELETE FROM news WHERE id = $1', [id]);
+        setNews(news.filter(n => n.id !== id));
+      } catch (e) {
+        alert("ડિલીટ કરવામાં ભૂલ આવી!");
+      }
     }
   };
 
@@ -149,11 +171,12 @@ const NewsSection: React.FC = () => {
          filteredNews.map(item => (
           <div key={item.id} className="bg-white rounded-[2.5rem] border border-gray-100 shadow-sm overflow-hidden group hover:shadow-xl transition-all duration-500">
             {item.image_url && (
-              <div className="aspect-video w-full overflow-hidden">
+              <div className="aspect-video w-full overflow-hidden bg-gray-50">
                 <img 
                   src={item.image_url} 
                   alt={item.title} 
                   className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-1000" 
+                  onError={(e) => (e.currentTarget.style.display = 'none')}
                 />
               </div>
             )}
@@ -250,10 +273,10 @@ const NewsSection: React.FC = () => {
 
               <button 
                 type="submit" 
-                disabled={uploading}
-                className={`w-full bg-blue-600 text-white py-5 rounded-2xl font-black text-lg shadow-xl shadow-blue-100 active:scale-95 transition-all ${uploading ? 'opacity-50' : ''}`}
+                disabled={uploading || isSubmitting}
+                className={`w-full bg-blue-600 text-white py-5 rounded-2xl font-black text-lg shadow-xl shadow-blue-100 active:scale-95 transition-all ${(uploading || isSubmitting) ? 'opacity-50' : ''}`}
               >
-                પબ્લિશ કરો
+                {isSubmitting ? 'પબ્લિશ થઈ રહ્યું છે...' : 'પબ્લિશ કરો'}
               </button>
             </form>
           </div>
