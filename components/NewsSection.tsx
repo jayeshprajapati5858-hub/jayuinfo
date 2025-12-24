@@ -19,6 +19,7 @@ const NewsSection: React.FC = () => {
   const [category, setCategory] = useState<'village' | 'agri' | 'gujarat'>('village');
   const [content, setContent] = useState('');
   const [imageUrl, setImageUrl] = useState('');
+  const [uploading, setUploading] = useState(false);
 
   const initDb = async () => {
     try {
@@ -49,6 +50,24 @@ const NewsSection: React.FC = () => {
 
   useEffect(() => { fetchNews(); }, []);
 
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 2 * 1024 * 1024) {
+      alert("ફોટો ૨ MB થી નાનો હોવો જોઈએ!");
+      return;
+    }
+
+    setUploading(true);
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setImageUrl(reader.result as string);
+      setUploading(false);
+    };
+    reader.readAsDataURL(file);
+  };
+
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
     if (pin === '1234') { setIsAdmin(true); setShowLogin(false); setPin(''); }
@@ -64,9 +83,16 @@ const NewsSection: React.FC = () => {
       );
       fetchNews();
       setShowForm(false);
-      setTitle(''); setContent(''); setImageUrl('');
+      resetForm();
       alert('સમાચાર પબ્લિશ થઈ ગયા!');
     } catch (e) { alert('ભૂલ પડી!'); }
+  };
+
+  const resetForm = () => {
+    setTitle('');
+    setContent('');
+    setImageUrl('');
+    setCategory('village');
   };
 
   const handleDelete = async (id: number) => {
@@ -95,7 +121,7 @@ const NewsSection: React.FC = () => {
           <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mt-1">Daily Village Updates</p>
         </div>
         {isAdmin && (
-          <button onClick={() => setShowForm(true)} className="bg-blue-600 text-white px-5 py-2.5 rounded-2xl text-xs font-bold shadow-lg">
+          <button onClick={() => setShowForm(true)} className="bg-blue-600 text-white px-5 py-2.5 rounded-2xl text-xs font-bold shadow-lg shadow-blue-100">
             નવા સમાચાર +
           </button>
         )}
@@ -117,30 +143,34 @@ const NewsSection: React.FC = () => {
       </div>
 
       {/* News Feed */}
-      <div className="space-y-6">
+      <div className="space-y-8">
         {loading ? <div className="text-center py-20 opacity-30">લોડિંગ...</div> : 
          filteredNews.length === 0 ? <div className="text-center py-20 text-gray-400 font-bold">અત્યારે કોઈ સમાચાર નથી.</div> :
          filteredNews.map(item => (
-          <div key={item.id} className="bg-white rounded-[2.5rem] border border-gray-50 shadow-sm overflow-hidden group hover:shadow-xl transition-all duration-500">
+          <div key={item.id} className="bg-white rounded-[2.5rem] border border-gray-100 shadow-sm overflow-hidden group hover:shadow-xl transition-all duration-500">
             {item.image_url && (
-              <div className="h-48 overflow-hidden">
-                <img src={item.image_url} alt={item.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />
+              <div className="aspect-video w-full overflow-hidden">
+                <img 
+                  src={item.image_url} 
+                  alt={item.title} 
+                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-1000" 
+                />
               </div>
             )}
-            <div className="p-7">
-              <div className="flex justify-between items-center mb-4">
-                <span className="text-[10px] font-black text-blue-600 bg-blue-50 px-3 py-1 rounded-full uppercase tracking-tighter">
+            <div className="p-8">
+              <div className="flex justify-between items-center mb-5">
+                <span className="text-[10px] font-black text-blue-600 bg-blue-50 px-4 py-1.5 rounded-full uppercase tracking-tighter">
                   {getCategoryLabel(item.category)}
                 </span>
                 <span className="text-[10px] text-gray-300 font-bold">{item.date_str}</span>
               </div>
-              <h3 className="text-xl font-black text-gray-900 mb-3 leading-tight">{item.title}</h3>
-              <p className="text-sm text-gray-600 leading-relaxed mb-6 whitespace-pre-wrap">{item.content}</p>
+              <h3 className="text-2xl font-black text-gray-900 mb-4 leading-tight">{item.title}</h3>
+              <p className="text-base text-gray-600 leading-relaxed mb-8 whitespace-pre-wrap">{item.content}</p>
               
-              <div className="flex justify-between items-center pt-5 border-t border-gray-50">
+              <div className="flex justify-between items-center pt-6 border-t border-gray-50">
                 <button 
                   onClick={() => window.open(`https://wa.me/?text=${encodeURIComponent('*📢 ' + item.title + '*\n\n' + item.content + '\n\n👉 વધુ માટે એપ જુઓ: https://www.jayuinfo.in')}`, '_blank')}
-                  className="flex items-center gap-2 text-green-600 font-black text-[10px] uppercase tracking-widest bg-green-50 px-4 py-2 rounded-full hover:bg-green-100 transition-colors"
+                  className="flex items-center gap-2 text-green-600 font-black text-[10px] uppercase tracking-widest bg-green-50 px-5 py-2.5 rounded-full hover:bg-green-100 transition-colors"
                 >
                   <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M12.031 6.172c-3.181 0-5.767 2.586-5.768 5.766-.001 1.298.38 2.27 1.019 3.287l-.582 2.128 2.18-.573c.978.539 2.027.823 3.151.824h.001c3.181 0 5.767-2.586 5.768-5.766.001-3.18-2.585-5.766-5.77-5.766zm3.364 8.162c-.149.418-.752.766-1.04.811-.273.045-.615.084-1.017-.046-.248-.08-.57-.183-.93-.339-1.536-.653-2.531-2.204-2.607-2.305-.075-.1-.615-.818-.615-1.56s.385-1.104.52-1.254c.135-.15.295-.187.393-.187.098 0 .196.001.282.005.089.004.21-.034.328.254.122.296.417 1.015.453 1.09.036.075.059.163.009.263-.05.1-.075.163-.149.251-.075.088-.158.196-.225.263-.075.075-.153.157-.066.307.086.15.383.633.821 1.023.565.503 1.041.659 1.191.734.15.075.238.063.326-.038.088-.1.376-.438.476-.588.1-.15.2-.125.338-.075.138.05.875.413 1.025.488s.25.113.288.175c.037.062.037.359-.112.777z"/></svg>
                   વોટ્સએપ શેર
@@ -169,21 +199,62 @@ const NewsSection: React.FC = () => {
       {/* Form Modal */}
       {showForm && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-md z-[100] flex items-center justify-center p-4">
-          <div className="bg-white rounded-[2.5rem] w-full max-w-md p-8 shadow-2xl animate-fade-in">
+          <div className="bg-white rounded-[2.5rem] w-full max-w-lg p-8 shadow-2xl animate-fade-in max-h-[90vh] overflow-y-auto no-scrollbar">
             <div className="flex justify-between items-center mb-6">
               <h3 className="text-2xl font-black text-gray-900">નવા સમાચાર લખો</h3>
-              <button onClick={() => setShowForm(false)} className="bg-gray-100 p-2 rounded-full">✕</button>
+              <button onClick={() => setShowForm(false)} className="bg-gray-100 p-2 rounded-full hover:bg-gray-200 transition-colors">✕</button>
             </div>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <select value={category} onChange={e => setCategory(e.target.value as any)} className="w-full p-4 bg-gray-50 rounded-2xl border-none outline-none font-bold">
-                <option value="village">ગામના સમાચાર</option>
-                <option value="agri">ખેતીવાડી</option>
-                <option value="gujarat">ગુજરાત / રાજ્ય</option>
-              </select>
-              <input type="text" placeholder="સમાચારનું શીર્ષક" value={title} onChange={e => setTitle(e.target.value)} className="w-full p-4 bg-gray-50 rounded-2xl outline-none" required />
-              <textarea placeholder="સમાચારની વિગત..." value={content} onChange={e => setContent(e.target.value)} className="w-full p-4 bg-gray-50 rounded-2xl outline-none" rows={5} required />
-              <input type="text" placeholder="ફોટો લિંક (વૈકલ્પિક)" value={imageUrl} onChange={e => setImageUrl(e.target.value)} className="w-full p-4 bg-gray-50 rounded-2xl outline-none" />
-              <button type="submit" className="w-full bg-blue-600 text-white py-5 rounded-2xl font-black text-lg shadow-xl shadow-blue-100">પબ્લિશ કરો</button>
+            <form onSubmit={handleSubmit} className="space-y-5">
+              <div className="space-y-2">
+                <label className="text-[10px] font-black text-gray-400 uppercase ml-2">શ્રેણી</label>
+                <select value={category} onChange={e => setCategory(e.target.value as any)} className="w-full p-4 bg-gray-50 rounded-2xl border-none outline-none font-bold">
+                  <option value="village">ગામના સમાચાર</option>
+                  <option value="agri">ખેતીવાડી</option>
+                  <option value="gujarat">ગુજરાત / રાજ્ય</option>
+                </select>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-[10px] font-black text-gray-400 uppercase ml-2">સમાચાર ફોટો</label>
+                <div className="relative">
+                  {imageUrl ? (
+                    <div className="relative rounded-2xl overflow-hidden mb-2">
+                      <img src={imageUrl} alt="Preview" className="w-full aspect-video object-cover" />
+                      <button 
+                        type="button" 
+                        onClick={() => setImageUrl('')}
+                        className="absolute top-2 right-2 bg-red-500 text-white p-2 rounded-full shadow-lg"
+                      >✕</button>
+                    </div>
+                  ) : (
+                    <label className="flex flex-col items-center justify-center w-full h-32 bg-gray-50 border-2 border-dashed border-gray-200 rounded-2xl cursor-pointer hover:bg-gray-100 transition-colors">
+                      <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                        <svg className="w-8 h-8 mb-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4"></path></svg>
+                        <p className="text-xs text-gray-500 font-bold">{uploading ? 'લોડિંગ...' : 'ફોટો પસંદ કરો'}</p>
+                      </div>
+                      <input type="file" className="hidden" accept="image/*" onChange={handleImageUpload} />
+                    </label>
+                  )}
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-[10px] font-black text-gray-400 uppercase ml-2">શીર્ષક</label>
+                <input type="text" placeholder="સમાચારનું શીર્ષક" value={title} onChange={e => setTitle(e.target.value)} className="w-full p-4 bg-gray-50 rounded-2xl outline-none focus:ring-2 focus:ring-blue-100 transition-all" required />
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-[10px] font-black text-gray-400 uppercase ml-2">વિગત</label>
+                <textarea placeholder="સમાચારની વિગત..." value={content} onChange={e => setContent(e.target.value)} className="w-full p-4 bg-gray-50 rounded-2xl outline-none focus:ring-2 focus:ring-blue-100 transition-all" rows={4} required />
+              </div>
+
+              <button 
+                type="submit" 
+                disabled={uploading}
+                className={`w-full bg-blue-600 text-white py-5 rounded-2xl font-black text-lg shadow-xl shadow-blue-100 active:scale-95 transition-all ${uploading ? 'opacity-50' : ''}`}
+              >
+                પબ્લિશ કરો
+              </button>
             </form>
           </div>
         </div>
