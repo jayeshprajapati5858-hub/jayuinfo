@@ -1,21 +1,33 @@
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import WeatherWidget from './WeatherWidget';
 import AdSenseSlot from './AdSenseSlot';
+import { pool } from '../utils/db';
 
 interface HomeViewProps {
   featuredNotice: any;
 }
 
 const HomeView: React.FC<HomeViewProps> = ({ featuredNotice }) => {
+  const [latestNews, setLatestNews] = useState<any>(null);
+
+  useEffect(() => {
+    const fetchLatestNews = async () => {
+      try {
+        const res = await pool.query('SELECT * FROM news ORDER BY id DESC LIMIT 1');
+        if (res.rows.length > 0) setLatestNews(res.rows[0]);
+      } catch (e) { console.warn("News not yet initialized"); }
+    };
+    fetchLatestNews();
+  }, []);
   
   const servicesList = [
       { id: 'marketplace', label: 'ગ્રામ્ય હાટ', color: 'bg-amber-600', icon: <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"></path></svg> },
+      { id: 'news', label: 'સમાચાર', color: 'bg-blue-600', icon: <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z" /></svg> },
       { id: 'notice', label: 'નોટિસ', color: 'bg-orange-600', icon: <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z"></path></svg> },
       { id: 'rojgar', label: 'રોજગાર', color: 'bg-emerald-600', icon: <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg> },
       { id: 'health', label: 'આરોગ્ય', color: 'bg-teal-600', icon: <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.384-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" /></svg> },
-      { id: 'water', label: 'પાણી', color: 'bg-blue-600', icon: <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0a2 2 0 01-2 2H6a2 2 0 01-2-2m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5" /></svg> },
       { id: 'schemes', label: 'યોજના', color: 'bg-purple-600', icon: <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg> },
   ];
 
@@ -35,6 +47,24 @@ const HomeView: React.FC<HomeViewProps> = ({ featuredNotice }) => {
           </div>
           <div className="sm:w-1/3"><WeatherWidget /></div>
       </div>
+
+      {/* Breaking News Highlight */}
+      {latestNews && (
+        <Link to="/service/news" className="block bg-blue-50 border border-blue-100 rounded-[2.5rem] p-6 relative overflow-hidden group">
+           <div className="flex items-center gap-4">
+              <div className="bg-blue-600 text-white p-3 rounded-2xl shadow-lg animate-bounce">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z" /></svg>
+              </div>
+              <div className="flex-1">
+                 <div className="flex justify-between items-center mb-1">
+                    <span className="text-[9px] font-black text-blue-600 uppercase tracking-widest">તાજા સમાચાર</span>
+                    <span className="text-[9px] text-gray-400 font-bold">{latestNews.date_str}</span>
+                 </div>
+                 <h4 className="text-sm font-black text-gray-900 group-hover:text-blue-700 transition-colors line-clamp-1">{latestNews.title}</h4>
+              </div>
+           </div>
+        </Link>
+      )}
 
       {/* Main Action Banner - PDF Search Highlight */}
       <Link to="/search" className="block bg-emerald-600 rounded-[2.5rem] p-8 shadow-2xl shadow-emerald-200/50 cursor-pointer transform active:scale-[0.98] transition-all group relative overflow-hidden">
