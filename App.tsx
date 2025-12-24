@@ -112,7 +112,7 @@ const App: React.FC = () => {
       <NoticeTicker notices={tickerNotices} />
       <main className="max-w-2xl mx-auto px-4 py-8 pb-32">
         <Routes>
-          <Route path="/" element={<HomeView featuredNotice={featuredNotice} hasNewNotices={tickerNotices.length > 0} />} />
+          <Route path="/" element={<HomeView featuredNotice={featuredNotice} />} />
           <Route path="/search" element={<SearchPage />} />
           <Route path="/panchayat" element={<PanchayatInfo />} />
           <Route path="/service/:type" element={<ServiceView />} />
