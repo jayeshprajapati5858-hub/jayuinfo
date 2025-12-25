@@ -48,11 +48,28 @@ const HomeView: React.FC<HomeViewProps> = ({ featuredNotice }) => {
           <div className="sm:w-1/3"><WeatherWidget /></div>
       </div>
 
+      {/* Main Action Banner - PDF Search Highlight with Animation */}
+      <Link to="/search" className="block bg-gradient-to-br from-emerald-600 to-green-700 rounded-[2.5rem] p-8 shadow-2xl shadow-emerald-200/50 cursor-pointer transform active:scale-[0.98] transition-all group relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full blur-3xl -mr-24 -mt-24 group-hover:scale-110 transition-transform duration-700"></div>
+          <div className="flex items-center gap-6 relative z-10">
+              <div className="bg-white text-emerald-600 p-5 rounded-3xl shadow-2xl border border-white/20 animate-pulse">
+                  <svg className="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+              </div>
+              <div className="flex-1">
+                  <h3 className="text-white font-black text-2xl leading-tight drop-shadow-sm">કૃષિ સહાય પેકેજ યાદી</h3>
+                  <p className="text-emerald-50 text-sm mt-1 font-bold opacity-90">તમારું નામ અથવા અરજી નંબર લિસ્ટમાં શોધો</p>
+                  <div className="mt-4 inline-flex items-center gap-2 bg-white text-emerald-700 px-5 py-2 rounded-full text-[10px] font-black uppercase tracking-widest shadow-lg hover:bg-emerald-50 transition-colors">
+                     Search List →
+                  </div>
+              </div>
+          </div>
+      </Link>
+
       {/* Breaking News Highlight */}
       {latestNews && (
         <Link to="/service/news" className="block bg-blue-50 border border-blue-100 rounded-[2.5rem] p-6 relative overflow-hidden group">
            <div className="flex items-center gap-4">
-              <div className="bg-blue-600 text-white p-3 rounded-2xl shadow-lg animate-bounce">
+              <div className="bg-blue-600 text-white p-3 rounded-2xl shadow-lg">
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z" /></svg>
               </div>
               <div className="flex-1">
@@ -65,23 +82,6 @@ const HomeView: React.FC<HomeViewProps> = ({ featuredNotice }) => {
            </div>
         </Link>
       )}
-
-      {/* Main Action Banner - PDF Search Highlight */}
-      <Link to="/search" className="block bg-emerald-600 rounded-[2.5rem] p-8 shadow-2xl shadow-emerald-200/50 cursor-pointer transform active:scale-[0.98] transition-all group relative overflow-hidden">
-          <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full blur-3xl -mr-24 -mt-24 group-hover:scale-110 transition-transform duration-700"></div>
-          <div className="flex items-center gap-6 relative z-10">
-              <div className="bg-white text-emerald-600 p-5 rounded-3xl shadow-2xl border border-white/20">
-                  <svg className="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
-              </div>
-              <div className="flex-1">
-                  <h3 className="text-white font-black text-xl leading-tight">કૃષિ સહાય PDF ડેટા ૨૦૨૪</h3>
-                  <p className="text-emerald-100 text-sm mt-1 font-bold opacity-90">તમારું નામ અથવા અરજી નંબર અહીં શોધો</p>
-                  <div className="mt-4 inline-flex items-center gap-2 bg-white/20 text-white px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border border-white/30 backdrop-blur-md">
-                     Search Now →
-                  </div>
-              </div>
-          </div>
-      </Link>
 
       {/* Adsterra Advertisement Slot 1 */}
       <AdsterraAd />

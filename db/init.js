@@ -3,7 +3,7 @@ import pg from 'pg';
 
 const { Pool } = pg;
 
-const connectionString = 'postgresql://neondb_owner:npg_N5Pl8HTUOywj@ep-still-wind-adtlfp21-pooler.c-2.us-east-1.aws.neon.tech/neondb?sslmode=require';
+const connectionString = 'postgresql://neondb_owner:npg_iIT2ytEBf6oS@ep-long-union-a4xgd19v-pooler.us-east-1.aws.neon.tech/neondb?sslmode=require';
 
 const pool = new Pool({
   connectionString,
@@ -57,12 +57,48 @@ const createTableQuery = `
     author TEXT NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
   );
+  
+  CREATE TABLE IF NOT EXISTS businesses (
+      id SERIAL PRIMARY KEY, 
+      name TEXT, 
+      category TEXT, 
+      owner TEXT, 
+      mobile TEXT, 
+      details TEXT
+  );
+
+  CREATE TABLE IF NOT EXISTS water_schedule (
+      id SERIAL PRIMARY KEY, 
+      line_name TEXT, 
+      area TEXT, 
+      time_slot TEXT, 
+      status TEXT
+  );
+
+  CREATE TABLE IF NOT EXISTS water_complaints (
+      id SERIAL PRIMARY KEY, 
+      name TEXT, 
+      details TEXT, 
+      date_str TEXT, 
+      status TEXT
+  );
+
+  CREATE TABLE IF NOT EXISTS water_settings (
+      key TEXT PRIMARY KEY, 
+      value TEXT
+  );
+
+  CREATE TABLE IF NOT EXISTS school_updates (
+      id SERIAL PRIMARY KEY, 
+      title TEXT, 
+      date_str TEXT
+  );
 `;
 
 const initDb = async () => {
   try {
     await pool.query(createTableQuery);
-    console.log("✅ Tables verified (notices, jobs, marketplace, news).");
+    console.log("✅ Tables verified.");
   } catch (err) {
     console.error("❌ Database Init Error:", err);
   } finally {

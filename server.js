@@ -12,7 +12,7 @@ app.use(cors());
 app.use(express.json({ limit: '5mb' })); // Increased limit for base64 images
 
 // Database Connection
-const connectionString = 'postgresql://neondb_owner:npg_N5Pl8HTUOywj@ep-still-wind-adtlfp21-pooler.c-2.us-east-1.aws.neon.tech/neondb?sslmode=require';
+const connectionString = 'postgresql://neondb_owner:npg_iIT2ytEBf6oS@ep-long-union-a4xgd19v-pooler.us-east-1.aws.neon.tech/neondb?sslmode=require';
 
 const pool = new Pool({
   connectionString,
@@ -55,12 +55,53 @@ const initDb = async () => {
       author TEXT NOT NULL,
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );
+    CREATE TABLE IF NOT EXISTS jobs (
+      id SERIAL PRIMARY KEY, 
+      category TEXT, 
+      title TEXT, 
+      details TEXT, 
+      wages TEXT, 
+      contact_name TEXT, 
+      mobile TEXT, 
+      date_str TEXT
+    );
+    CREATE TABLE IF NOT EXISTS businesses (
+      id SERIAL PRIMARY KEY, 
+      name TEXT, 
+      category TEXT, 
+      owner TEXT, 
+      mobile TEXT, 
+      details TEXT
+    );
+    CREATE TABLE IF NOT EXISTS water_schedule (
+      id SERIAL PRIMARY KEY, 
+      line_name TEXT, 
+      area TEXT, 
+      time_slot TEXT, 
+      status TEXT
+    );
+    CREATE TABLE IF NOT EXISTS water_complaints (
+      id SERIAL PRIMARY KEY, 
+      name TEXT, 
+      details TEXT, 
+      date_str TEXT, 
+      status TEXT
+    );
+    CREATE TABLE IF NOT EXISTS water_settings (
+      key TEXT PRIMARY KEY, 
+      value TEXT
+    );
+    CREATE TABLE IF NOT EXISTS school_updates (
+      id SERIAL PRIMARY KEY, 
+      title TEXT, 
+      date_str TEXT
+    );
   `;
   try {
     const client = await pool.connect();
     await client.query(createTablesQuery);
     client.release();
-    console.log("✅ Database Connected & Tables Verified (Notices, Marketplace, News)");
+    console.log("✅ Database Connected & Tables Verified");
   } catch (err) {
     console.error("❌ Database Connection Error:", err);
   }
