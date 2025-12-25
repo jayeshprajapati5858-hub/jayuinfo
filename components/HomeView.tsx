@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import WeatherWidget from './WeatherWidget';
-import AdSenseSlot from './AdSenseSlot';
+import AdsterraAd from './AdsterraAd';
 import { pool } from '../utils/db';
 
 interface HomeViewProps {
@@ -83,7 +83,8 @@ const HomeView: React.FC<HomeViewProps> = ({ featuredNotice }) => {
           </div>
       </Link>
 
-      <AdSenseSlot slot="1234567890" format="rectangle" />
+      {/* Adsterra Advertisement Slot 1 */}
+      <AdsterraAd />
 
       {/* Services Grid */}
       <div>
@@ -105,7 +106,8 @@ const HomeView: React.FC<HomeViewProps> = ({ featuredNotice }) => {
           </div>
       </div>
 
-      <AdSenseSlot slot="0987654321" format="fluid" />
+      {/* Adsterra Advertisement Slot 2 */}
+      <AdsterraAd />
 
       {/* Notices Section Only */}
       <div className="space-y-4">
@@ -132,8 +134,6 @@ const HomeView: React.FC<HomeViewProps> = ({ featuredNotice }) => {
               </div>
           )}
       </div>
-
-      <AdSenseSlot slot="1122334455" format="rectangle" />
 
       {/* Professional Footer */}
       <div className="pt-10 border-t border-gray-100 pb-10">
