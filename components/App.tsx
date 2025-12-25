@@ -45,14 +45,21 @@ const NoticeTicker = ({ notices }: { notices: any[] }) => {
   );
 };
 
-const SearchPage = () => {
+interface SearchPageProps {
+  dbBeneficiaries: Beneficiary[];
+}
+
+const SearchPage: React.FC<SearchPageProps> = ({ dbBeneficiaries }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const navigate = useNavigate();
 
+  // Use DB data if available, otherwise fall back to local file
+  const dataToUse = dbBeneficiaries.length > 0 ? dbBeneficiaries : beneficiaryData;
+
   const filteredData = useMemo(() => {
-    if (!searchQuery.trim()) return beneficiaryData;
+    if (!searchQuery.trim()) return dataToUse;
     const searchTerms = searchQuery.toLowerCase().trim().split(/\s+/);
-    return beneficiaryData.filter((item: Beneficiary) => {
+    return dataToUse.filter((item: Beneficiary) => {
       const itemData = `${item.id} ${item.applicationNo} ${item.name} ${item.accountNo} ${item.village}`.toLowerCase();
       const itemSkeleton = normalizeToSkeleton(itemData);
       return searchTerms.every(term => {
@@ -60,7 +67,7 @@ const SearchPage = () => {
         return itemData.includes(term) || itemSkeleton.includes(termSkeleton);
       });
     });
-  }, [searchQuery]);
+  }, [searchQuery, dataToUse]);
 
   return (
     <div className="animate-fade-in space-y-6">
@@ -74,6 +81,9 @@ const SearchPage = () => {
         <SearchBar value={searchQuery} onChange={setSearchQuery} />
       </div>
       <div className="bg-white rounded-[2.5rem] shadow-sm border border-gray-100 px-6 py-6 min-h-[500px]">
+        {dbBeneficiaries.length === 0 && (
+            <p className="text-center text-xs text-gray-400 mb-4 animate-pulse">ડેટાબેઝમાંથી ડેટા લોડ થઈ રહ્યો છે...</p>
+        )}
         <BeneficiaryList data={filteredData} />
       </div>
     </div>
@@ -83,18 +93,29 @@ const SearchPage = () => {
 const App: React.FC = () => {
   const [tickerNotices, setTickerNotices] = useState<any[]>([]);
   const [featuredNotice, setFeaturedNotice] = useState<any>(null);
+  const [dbBeneficiaries, setDbBeneficiaries] = useState<Beneficiary[]>([]);
   
   const location = useLocation();
 
   const loadInitialData = useCallback(async () => {
-    // DB errors are handled inside pool.query, returning empty arrays on failure.
-    const noticeRes = await pool.query('SELECT * FROM notices ORDER BY id DESC LIMIT 5');
-    if (noticeRes && noticeRes.rows) {
-       setTickerNotices(noticeRes.rows);
-       if (noticeRes.rows.length > 0) {
-          setFeaturedNotice(noticeRes.rows[0]);
-       }
-    }
+    // 1. Fetch Notices
+    try {
+      const noticeRes = await pool.query('SELECT * FROM notices ORDER BY id DESC LIMIT 5');
+      if (noticeRes && noticeRes.rows) {
+         setTickerNotices(noticeRes.rows);
+         if (noticeRes.rows.length > 0) {
+            setFeaturedNotice(noticeRes.rows[0]);
+         }
+      }
+    } catch (e) { console.warn("Notice fetch warning", e); }
+
+    // 2. Fetch Beneficiaries (PDF Data) from DB
+    try {
+      const benRes = await pool.query('SELECT id, application_no as "applicationNo", name, account_no as "accountNo", village FROM beneficiaries ORDER BY id ASC');
+      if (benRes && benRes.rows && benRes.rows.length > 0) {
+         setDbBeneficiaries(benRes.rows);
+      }
+    } catch (e) { console.warn("Beneficiary fetch warning", e); }
   }, []);
 
   useEffect(() => {
@@ -109,7 +130,7 @@ const App: React.FC = () => {
       <main className="max-w-2xl mx-auto px-4 py-8 pb-32">
         <Routes>
           <Route path="/" element={<HomeView featuredNotice={featuredNotice} />} />
-          <Route path="/search" element={<SearchPage />} />
+          <Route path="/search" element={<SearchPage dbBeneficiaries={dbBeneficiaries} />} />
           <Route path="/panchayat" element={<PanchayatInfo />} />
           <Route path="/service/:type" element={<ServiceView />} />
           <Route path="/about" element={<AboutUs />} />

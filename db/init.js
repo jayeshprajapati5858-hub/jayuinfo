@@ -3,7 +3,7 @@ import pg from 'pg';
 
 const { Pool } = pg;
 
-const connectionString = 'postgresql://neondb_owner:npg_iIT2ytEBf6oS@ep-long-union-a4xgd19v-pooler.us-east-1.aws.neon.tech/neondb?sslmode=require';
+const connectionString = 'postgresql://neondb_owner:npg_iIT2ytEBf6oS@ep-long-union-a4xgd19v-pooler.us-east-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require';
 
 const pool = new Pool({
   connectionString,
@@ -92,6 +92,14 @@ const createTableQuery = `
       id SERIAL PRIMARY KEY, 
       title TEXT, 
       date_str TEXT
+  );
+
+  CREATE TABLE IF NOT EXISTS beneficiaries (
+      id SERIAL PRIMARY KEY,
+      application_no TEXT,
+      name TEXT,
+      account_no TEXT,
+      village TEXT
   );
 `;
 
