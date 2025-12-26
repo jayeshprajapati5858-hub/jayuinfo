@@ -17,12 +17,12 @@ const HomeView: React.FC = () => {
         </div>
 
         <div className="bg-gray-900/50 p-4 rounded-xl text-left border border-gray-800">
-           <p className="text-xs font-mono text-gray-400 mb-2">> Status Check:</p>
+           <p className="text-xs font-mono text-gray-400 mb-2">&gt; Status Check:</p>
            <ul className="space-y-1 text-sm font-mono">
               <li className="text-green-400">✓ Old Tables Dropped</li>
               <li className="text-green-400">✓ Routes Cleared</li>
               <li className="text-green-400">✓ UI Reset to Black Theme</li>
-              <li className="text-blue-400 animate-pulse">> Waiting for new code...</li>
+              <li className="text-blue-400 animate-pulse">&gt; Waiting for new code...</li>
            </ul>
         </div>
 

@@ -2,12 +2,12 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { pool } from '../utils/db';
-import { NewsArticle } from '../types';
+import { DBNewsArticle } from '../types';
 import AdSenseSlot from './AdSenseSlot';
 
 const ArticleView: React.FC = () => {
   const { id } = useParams<{ id: string }>();
-  const [article, setArticle] = useState<NewsArticle | null>(null);
+  const [article, setArticle] = useState<DBNewsArticle | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {

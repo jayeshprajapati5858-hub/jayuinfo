@@ -35,3 +35,15 @@ export interface Beneficiary {
   accountNo: string;
   village: string;
 }
+
+export interface DBNewsArticle {
+  id: number;
+  title: string;
+  subtitle?: string;
+  content: string;
+  category: string;
+  image_url?: string;
+  author: string;
+  date_str: string;
+  is_breaking?: boolean;
+}
