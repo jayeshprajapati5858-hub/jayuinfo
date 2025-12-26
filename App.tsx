@@ -1,5 +1,5 @@
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect } from 'react';
 import { Routes, Route, useLocation, Link } from 'react-router-dom';
 import Header from './components/Header';
 import HomeView from './components/HomeView';
