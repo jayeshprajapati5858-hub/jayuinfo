@@ -1,6 +1,6 @@
 {
-  "name": "Krushi Sahay DBT Portal",
-  "description": "A searchable portal for Agricultural Relief Package (DBT) beneficiary data.",
+  "name": "Hyper-Local News Portal",
+  "description": "A comprehensive portal for hyper-local news, government schemes, and village services.",
   "requestFramePermissions": [
     "microphone"
   ]
