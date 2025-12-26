@@ -12,103 +12,29 @@ const pool = new Pool({
   }
 });
 
-const createTableQuery = `
-  CREATE TABLE IF NOT EXISTS notices (
-    id SERIAL PRIMARY KEY, 
-    type TEXT, 
-    title TEXT, 
-    description TEXT, 
-    date_str TEXT, 
-    contact_person TEXT, 
-    mobile TEXT, 
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-  );
-
-  CREATE TABLE IF NOT EXISTS jobs (
-    id SERIAL PRIMARY KEY, 
-    category TEXT, 
-    title TEXT, 
-    details TEXT, 
-    wages TEXT, 
-    contact_name TEXT, 
-    mobile TEXT, 
-    date_str TEXT
-  );
-
-  CREATE TABLE IF NOT EXISTS marketplace (
-    id SERIAL PRIMARY KEY,
-    category TEXT NOT NULL,
-    title TEXT NOT NULL,
-    price TEXT NOT NULL,
-    description TEXT,
-    owner_name TEXT NOT NULL,
-    mobile TEXT NOT NULL,
-    date_str TEXT NOT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-  );
-
-  CREATE TABLE IF NOT EXISTS news (
-    id SERIAL PRIMARY KEY,
-    category TEXT NOT NULL,
-    title TEXT NOT NULL,
-    content TEXT NOT NULL,
-    image_url TEXT,
-    date_str TEXT NOT NULL,
-    author TEXT NOT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-  );
-  
-  CREATE TABLE IF NOT EXISTS businesses (
-      id SERIAL PRIMARY KEY, 
-      name TEXT, 
-      category TEXT, 
-      owner TEXT, 
-      mobile TEXT, 
-      details TEXT
-  );
-
-  CREATE TABLE IF NOT EXISTS water_schedule (
-      id SERIAL PRIMARY KEY, 
-      line_name TEXT, 
-      area TEXT, 
-      time_slot TEXT, 
-      status TEXT
-  );
-
-  CREATE TABLE IF NOT EXISTS water_complaints (
-      id SERIAL PRIMARY KEY, 
-      name TEXT, 
-      details TEXT, 
-      date_str TEXT, 
-      status TEXT
-  );
-
-  CREATE TABLE IF NOT EXISTS water_settings (
-      key TEXT PRIMARY KEY, 
-      value TEXT
-  );
-
-  CREATE TABLE IF NOT EXISTS school_updates (
-      id SERIAL PRIMARY KEY, 
-      title TEXT, 
-      date_str TEXT
-  );
-
-  CREATE TABLE IF NOT EXISTS beneficiaries (
-      id SERIAL PRIMARY KEY,
-      application_no TEXT,
-      name TEXT,
-      account_no TEXT,
-      village TEXT
-  );
+// COMMAND TO CLEAN ALL DATABASE TABLES
+const cleanDbQuery = `
+  DROP TABLE IF EXISTS notices CASCADE;
+  DROP TABLE IF EXISTS jobs CASCADE;
+  DROP TABLE IF EXISTS marketplace CASCADE;
+  DROP TABLE IF EXISTS news CASCADE;
+  DROP TABLE IF EXISTS news_articles CASCADE;
+  DROP TABLE IF EXISTS businesses CASCADE;
+  DROP TABLE IF EXISTS water_schedule CASCADE;
+  DROP TABLE IF EXISTS water_complaints CASCADE;
+  DROP TABLE IF EXISTS water_settings CASCADE;
+  DROP TABLE IF EXISTS school_updates CASCADE;
+  DROP TABLE IF EXISTS beneficiaries CASCADE;
 `;
 
 const initDb = async () => {
   try {
-    await pool.query(createTableQuery);
-    console.log("✅ Tables verified.");
+    console.log("🧹 Cleaning Database...");
+    await pool.query(cleanDbQuery);
+    console.log("✅ Database Cleaned! All old tables deleted.");
+    console.log("🚀 Ready for new DB schema.");
   } catch (err) {
-    console.error("❌ Database Init Error:", err);
+    console.error("❌ Database Clean Error:", err);
   } finally {
     await pool.end();
   }
