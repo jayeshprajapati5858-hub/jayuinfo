@@ -15,6 +15,7 @@ import StudentCorner from './StudentCorner';
 import BloodDonors from './BloodDonors';
 import VillageMarket from './VillageMarket';
 import NewsSection from './NewsSection';
+import BeneficiaryServices from './BeneficiaryServices';
 
 const ServiceView: React.FC = () => {
   const { type } = useParams<{ type: string }>();
@@ -22,6 +23,7 @@ const ServiceView: React.FC = () => {
   // Map of URL param to Component
   const renderService = () => {
     switch (type) {
+      case 'khedut': return <BeneficiaryServices />;
       case 'water': return <WaterSupply />;
       case 'health': return <HealthCenter />;
       case 'school': return <SchoolInfo />;
@@ -41,6 +43,7 @@ const ServiceView: React.FC = () => {
   };
 
   const servicesList = [
+      { id: 'khedut', label: 'લાભાર્થી યાદી', color: 'bg-emerald-600' },
       { id: 'marketplace', label: 'ગ્રામ્ય હાટ', color: 'bg-amber-600' },
       { id: 'news', label: 'સમાચાર', color: 'bg-blue-600' },
       { id: 'notice', label: 'નોટિસ', color: 'bg-orange-600' },
