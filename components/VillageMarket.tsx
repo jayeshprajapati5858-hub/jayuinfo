@@ -1,6 +1,4 @@
-
 import React, { useState, useEffect } from 'react';
-import { pool } from '../utils/db';
 
 interface MarketItem {
   id: number;
@@ -12,6 +10,15 @@ interface MarketItem {
   mobile: string;
   date_str: string;
 }
+
+const initialMarketData: MarketItem[] = [
+  {
+    id: 1, category: 'livestock', title: 'ગીર ગાય વેચવાની છે', price: '35000', description: 'પહેલું વેતર, ૮ લીટર દૂધ.', owner_name: 'રણછોડભાઈ', mobile: '9988776655', date_str: '25/05/2024'
+  },
+  {
+    id: 2, category: 'vehicle', title: 'જુનું ટ્રેક્ટર (Mahindra)', price: '250000', description: '2015 મોડલ, સારી કન્ડિશનમાં.', owner_name: 'કાનજીભાઈ', mobile: '9876543210', date_str: '24/05/2024'
+  }
+];
 
 const VillageMarket: React.FC = () => {
   const [items, setItems] = useState<MarketItem[]>([]);
@@ -32,35 +39,17 @@ const VillageMarket: React.FC = () => {
   const [owner, setOwner] = useState('');
   const [mobile, setMobile] = useState('');
 
-  const initDb = async () => {
-    try {
-      await pool.query(`
-        CREATE TABLE IF NOT EXISTS marketplace (
-          id SERIAL PRIMARY KEY,
-          category TEXT NOT NULL,
-          title TEXT NOT NULL,
-          price TEXT NOT NULL,
-          description TEXT,
-          owner_name TEXT NOT NULL,
-          mobile TEXT NOT NULL,
-          date_str TEXT NOT NULL,
-          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        );
-      `);
-    } catch (e) { console.error(e); }
-  };
-
-  const fetchItems = async () => {
-    setLoading(true);
-    try {
-      await initDb();
-      const res = await pool.query('SELECT * FROM marketplace ORDER BY id DESC');
-      setItems(res.rows);
-    } catch (e) { console.error(e); }
-    finally { setLoading(false); }
-  };
-
-  useEffect(() => { fetchItems(); }, []);
+  useEffect(() => {
+    // Load Local Data
+    const saved = localStorage.getItem('local_market');
+    if (saved) {
+        setItems(JSON.parse(saved));
+    } else {
+        setItems(initialMarketData);
+        localStorage.setItem('local_market', JSON.stringify(initialMarketData));
+    }
+    setLoading(false);
+  }, []);
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
@@ -68,26 +57,29 @@ const VillageMarket: React.FC = () => {
     else { alert('ખોટો પિન!'); }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    try {
-      await pool.query(
-        `INSERT INTO marketplace (category, title, price, description, owner_name, mobile, date_str) VALUES ($1, $2, $3, $4, $5, $6, $7)`,
-        [category, title, price, desc, owner, mobile, new Date().toLocaleDateString('gu-IN')]
-      );
-      fetchItems();
-      setShowForm(false);
-      resetForm();
-      alert('તમારી જાહેરાત સફળતાપૂર્વક મુકાઈ ગઈ છે!');
-    } catch (e) { alert('ભૂલ પડી!'); }
+    const newItem: MarketItem = {
+      id: Date.now(),
+      category, title, price, description: desc, owner_name: owner, mobile, date_str: new Date().toLocaleDateString('gu-IN')
+    };
+    
+    const updated = [newItem, ...items];
+    setItems(updated);
+    localStorage.setItem('local_market', JSON.stringify(updated));
+    
+    setShowForm(false);
+    resetForm();
+    alert('તમારી જાહેરાત સફળતાપૂર્વક મુકાઈ ગઈ છે (Local Mode)!');
   };
 
   const resetForm = () => { setTitle(''); setPrice(''); setDesc(''); setOwner(''); setMobile(''); };
 
-  const handleDelete = async (id: number) => {
+  const handleDelete = (id: number) => {
     if(confirm('આ જાહેરાત કાઢી નાખવી છે?')) {
-      await pool.query('DELETE FROM marketplace WHERE id = $1', [id]);
-      setItems(items.filter(i => i.id !== id));
+      const updated = items.filter(i => i.id !== id);
+      setItems(updated);
+      localStorage.setItem('local_market', JSON.stringify(updated));
     }
   };
 
@@ -162,7 +154,7 @@ const VillageMarket: React.FC = () => {
                 ફોન કરો
               </a>
               <a href={`https://wa.me/91${item.mobile}?text=${encodeURIComponent('નમસ્કાર, મેં ભરાડા પંચાયત એપ પર તમારી *' + item.title + '* ની જાહેરાત જોઈ. મને તેના વિશે વધુ માહિતી આપશો?')}`} target="_blank" className="bg-green-50 text-green-600 p-3 rounded-2xl hover:bg-green-100 transition-colors">
-                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M12.031 6.172c-3.181 0-5.767 2.586-5.768 5.766-.001 1.298.38 2.27 1.019 3.287l-.582 2.128 2.18-.573c.978.539 2.027.823 3.151.824h.001c3.181 0-5.767-2.586-5.768-5.766.001-3.18-2.585-5.766-5.77-5.766zm3.364 8.162c-.149.418-.752.766-1.04.811-.273.045-.615.084-1.017-.046-.248-.08-.57-.183-.93-.339-1.536-.653-2.531-2.204-2.607-2.305-.075-.1-.615-.818-.615-1.56s.385-1.104.52-1.254c.135-.15.295-.187.393-.187.098 0 .196.001.282.005.089.004.21-.034.328.254.122.296.417 1.015.453 1.09.036.075.059.163.009.263-.05.1-.075.163-.149.251-.075.088-.158.196-.225.263-.075.075-.153.157-.066.307.086.15.383.633.821 1.023.565.503 1.041.659 1.191.734.15.075.238.063.326-.038.088-.1.376-.438.476-.588.1-.15.2-.125.338-.075.138.05.875.413 1.025.488s.25.113.288.175c.037.062.037.359-.112.777z"/></svg>
+                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M12.031 6.172c-3.181 0-5.767 2.586-5.768 5.766-.001 1.298.38 2.27 1.019 3.287l-.582 2.128 2.18-.573c.978.539 2.027.823 3.151.824h.001c3.181 0 5.767-2.586 5.768-5.766.001-3.18-2.585-5.766-5.77-5.766zm3.364 8.162c-.149.418-.752.766-1.04.811-.273.045-.615.084-1.017-.046-.248-.08-.57-.183-.93-.339-1.536-.653-2.531-2.204-2.607-2.305-.075-.1-.615-.818-.615-1.56s.385-1.104.52-1.254c.135-.15.295-.187.393-.187.098 0 .196.001.282.005.089.004.21-.034.328.254.122.296.417 1.015.453 1.09.036.075.059.163.009.263-.05.1-.075.163-.149.251-.075.088-.158.196-.225.263-.075.075-.153.157-.066.307.086.15.383.633.821 1.023.565.503 1.041.659 1.191.734.15.075.238.063.326-.038.088-.1.376-.438.476-.588.1-.15.2-.125.338-.075.138.05.875.413 1.025.488s.25.113.288.175c.037.062.037.359-.112.777z"/></svg>
               </a>
             </div>
 

@@ -1,7 +1,36 @@
-
 import React, { useState, useEffect } from 'react';
-import { pool } from '../utils/db';
 import { NewsItem } from '../types';
+
+// Static Data for Demo
+const initialNewsData: NewsItem[] = [
+  {
+    id: 1,
+    category: 'village',
+    title: 'ગ્રામ પંચાયત દ્વારા પાણીના વેરામાં રાહત જાહેર',
+    content: 'આ વર્ષે સમયસર વેરો ભરનાર ગ્રામજનોને ૧૦% રિબેટ આપવામાં આવશે. સરપંચશ્રી દ્વારા જાહેરાત.',
+    date_str: '25/05/2024',
+    author: 'સરપંચ',
+    image_url: 'https://images.unsplash.com/photo-1599581843324-7e77747e0996?auto=format&fit=crop&q=80'
+  },
+  {
+    id: 2,
+    category: 'agri',
+    title: 'કપાસના ભાવમાં રેકોર્ડ બ્રેક ઉછાળો',
+    content: 'આ વર્ષે સારા વરસાદને કારણે કપાસનું ઉત્પાદન સારું થયું છે અને બજાર ભાવ ૧૭૦૦ ને પાર પહોંચ્યો છે.',
+    date_str: '24/05/2024',
+    author: 'એડમિન',
+    image_url: 'https://images.unsplash.com/photo-1471193945509-9adadd0974ce?auto=format&fit=crop&q=80'
+  },
+  {
+    id: 3,
+    category: 'gujarat',
+    title: 'ગુજરાતમાં ચોમાસાનું આગમન વહેલું થવાની શક્યતા',
+    content: 'હવામાન વિભાગની આગાહી મુજબ આ વર્ષે ૧૫ જૂન સુધીમાં મેઘરાજા પધરામણી કરશે.',
+    date_str: '23/05/2024',
+    author: 'Admin',
+    image_url: 'https://images.unsplash.com/photo-1515694346937-94d85e41e6f0?auto=format&fit=crop&q=80'
+  }
+];
 
 const NewsSection: React.FC = () => {
   const [news, setNews] = useState<NewsItem[]>([]);
@@ -18,85 +47,18 @@ const NewsSection: React.FC = () => {
   const [title, setTitle] = useState('');
   const [category, setCategory] = useState<'village' | 'agri' | 'gujarat'>('village');
   const [content, setContent] = useState('');
-  const [imageUrl, setImageUrl] = useState('');
-  const [uploading, setUploading] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const initDb = async () => {
-    try {
-      await pool.query(`
-        CREATE TABLE IF NOT EXISTS news (
-          id SERIAL PRIMARY KEY,
-          category TEXT NOT NULL,
-          title TEXT NOT NULL,
-          content TEXT NOT NULL,
-          image_url TEXT,
-          date_str TEXT NOT NULL,
-          author TEXT NOT NULL,
-          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        )
-      `);
-    } catch (e) { 
-      console.error("News table init error:", e); 
+  useEffect(() => {
+    // Load from LocalStorage or use Initial Data
+    const savedNews = localStorage.getItem('local_news');
+    if (savedNews) {
+      setNews(JSON.parse(savedNews));
+    } else {
+      setNews(initialNewsData);
+      localStorage.setItem('local_news', JSON.stringify(initialNewsData));
     }
-  };
-
-  const fetchNews = async () => {
-    setLoading(true);
-    try {
-      await initDb();
-      const res = await pool.query('SELECT * FROM news ORDER BY id DESC');
-      setNews(res.rows);
-    } catch (e) { 
-      console.error("Fetch news error:", e); 
-    }
-    finally { setLoading(false); }
-  };
-
-  useEffect(() => { fetchNews(); }, []);
-
-  // Image Compression Logic
-  const compressImage = (file: File): Promise<string> => {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.readAsDataURL(file);
-      reader.onload = (event) => {
-        const img = new Image();
-        img.src = event.target?.result as string;
-        img.onload = () => {
-          const canvas = document.createElement('canvas');
-          const MAX_WIDTH = 800; // Limit width
-          const scaleSize = MAX_WIDTH / img.width;
-          canvas.width = MAX_WIDTH;
-          canvas.height = img.height * scaleSize;
-
-          const ctx = canvas.getContext('2d');
-          ctx?.drawImage(img, 0, 0, canvas.width, canvas.height);
-          
-          // Lower quality to 0.6 to significantly reduce size
-          const dataUrl = canvas.toDataURL('image/jpeg', 0.6);
-          resolve(dataUrl);
-        };
-        img.onerror = reject;
-      };
-      reader.onerror = reject;
-    });
-  };
-
-  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    setUploading(true);
-    try {
-      const compressedData = await compressImage(file);
-      setImageUrl(compressedData);
-    } catch (err) {
-      alert("ફોટો પ્રોસેસ કરવામાં ભૂલ આવી!");
-    } finally {
-      setUploading(false);
-    }
-  };
+    setLoading(false);
+  }, []);
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
@@ -104,43 +66,31 @@ const NewsSection: React.FC = () => {
     else { alert('ખોટો પિન!'); }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (isSubmitting) return;
+    const newItem: NewsItem = {
+      id: Date.now(),
+      category,
+      title,
+      content,
+      date_str: new Date().toLocaleDateString('gu-IN'),
+      author: 'Admin'
+    };
 
-    setIsSubmitting(true);
-    try {
-      await pool.query(
-        `INSERT INTO news (category, title, content, image_url, date_str, author) VALUES ($1, $2, $3, $4, $5, $6)`,
-        [category, title, content, imageUrl || null, new Date().toLocaleDateString('gu-IN'), 'એડમિન']
-      );
-      await fetchNews();
-      setShowForm(false);
-      resetForm();
-      alert('સમાચાર પબ્લિશ થઈ ગયા!');
-    } catch (error: any) { 
-      console.error("Submit news error:", error);
-      alert('ભૂલ પડી: ડેટા ટ્રાન્સફર લિમિટ પૂરી થઈ ગઈ હોઈ શકે છે. જૂના સમાચાર ડિલીટ કરો.');
-    } finally {
-      setIsSubmitting(false);
-    }
+    const updatedNews = [newItem, ...news];
+    setNews(updatedNews);
+    localStorage.setItem('local_news', JSON.stringify(updatedNews));
+    
+    setShowForm(false);
+    setTitle(''); setContent('');
+    alert('સમાચાર (Local) પબ્લિશ થયા!');
   };
 
-  const resetForm = () => {
-    setTitle('');
-    setContent('');
-    setImageUrl('');
-    setCategory('village');
-  };
-
-  const handleDelete = async (id: number) => {
+  const handleDelete = (id: number) => {
     if(confirm('આ સમાચાર કાઢી નાખવા છે?')) {
-      try {
-        await pool.query('DELETE FROM news WHERE id = $1', [id]);
-        setNews(news.filter(n => n.id !== id));
-      } catch (e) {
-        alert("ડિલીટ કરવામાં ભૂલ આવી!");
-      }
+       const updatedNews = news.filter(n => n.id !== id);
+       setNews(updatedNews);
+       localStorage.setItem('local_news', JSON.stringify(updatedNews));
     }
   };
 
@@ -170,17 +120,9 @@ const NewsSection: React.FC = () => {
           <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mt-1">Daily Village Updates</p>
         </div>
         {isAdmin && (
-          <div className="flex gap-2">
-            <button 
-              onClick={async () => { if(confirm("બધા સમાચાર કાઢી નાખવા છે?")) { await pool.query("DELETE FROM news"); fetchNews(); } }}
-              className="bg-red-50 text-red-600 px-3 py-2.5 rounded-2xl text-[10px] font-black uppercase tracking-wider border border-red-100"
-            >
-              Clear All
-            </button>
             <button onClick={() => setShowForm(true)} className="bg-blue-600 text-white px-5 py-2.5 rounded-2xl text-xs font-bold shadow-lg shadow-blue-100">
               નવા સમાચાર +
             </button>
-          </div>
         )}
       </div>
 
@@ -273,31 +215,6 @@ const NewsSection: React.FC = () => {
               </div>
 
               <div className="space-y-2">
-                <label className="text-[10px] font-black text-gray-400 uppercase ml-2">સમાચાર ફોટો</label>
-                <div className="relative">
-                  {imageUrl ? (
-                    <div className="relative rounded-2xl overflow-hidden mb-2">
-                      <img src={imageUrl} alt="Preview" className="w-full aspect-video object-cover" />
-                      <button 
-                        type="button" 
-                        onClick={() => setImageUrl('')}
-                        className="absolute top-2 right-2 bg-red-500 text-white p-2 rounded-full shadow-lg"
-                      >✕</button>
-                    </div>
-                  ) : (
-                    <label className="flex flex-col items-center justify-center w-full h-32 bg-gray-50 border-2 border-dashed border-gray-200 rounded-2xl cursor-pointer hover:bg-gray-100 transition-colors">
-                      <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                        <svg className="w-8 h-8 mb-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4"></path></svg>
-                        <p className="text-xs text-gray-500 font-bold">{uploading ? 'લોડિંગ...' : 'ફોટો પસંદ કરો'}</p>
-                      </div>
-                      <input type="file" className="hidden" accept="image/*" onChange={handleImageUpload} />
-                    </label>
-                  )}
-                </div>
-                <p className="text-[9px] text-gray-400 text-center font-bold uppercase italic">ફોટો ઓટોમેટિક નાનો (Compress) થઈ જશે.</p>
-              </div>
-
-              <div className="space-y-2">
                 <label className="text-[10px] font-black text-gray-400 uppercase ml-2">શીર્ષક</label>
                 <input type="text" placeholder="સમાચારનું શીર્ષક" value={title} onChange={e => setTitle(e.target.value)} className="w-full p-4 bg-gray-50 rounded-2xl outline-none focus:ring-2 focus:ring-blue-100 transition-all" required />
               </div>
@@ -309,10 +226,9 @@ const NewsSection: React.FC = () => {
 
               <button 
                 type="submit" 
-                disabled={uploading || isSubmitting}
-                className={`w-full bg-blue-600 text-white py-5 rounded-2xl font-black text-lg shadow-xl shadow-blue-100 active:scale-95 transition-all ${(uploading || isSubmitting) ? 'opacity-50' : ''}`}
+                className={`w-full bg-blue-600 text-white py-5 rounded-2xl font-black text-lg shadow-xl shadow-blue-100 active:scale-95 transition-all`}
               >
-                {isSubmitting ? 'પબ્લિશ થઈ રહ્યું છે...' : 'પબ્લિશ કરો'}
+                પબ્લિશ કરો
               </button>
             </form>
           </div>

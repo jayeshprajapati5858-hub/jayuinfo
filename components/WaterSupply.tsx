@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { pool } from '../utils/db';
 
 interface WaterUpdate {
   id: number;
@@ -17,13 +16,17 @@ interface Complaint {
   status: 'Pending' | 'Resolved';
 }
 
+const initialSchedule: WaterUpdate[] = [
+    { id: 1, line_name: 'મેઈન બજાર લાઈન', area: 'પંચાયત ચોક થી બસ સ્ટેન્ડ', time_slot: '07:00 AM થી 09:00 AM', status: 'Running' },
+    { id: 2, line_name: 'હરિજન વાસ લાઈન', area: 'પશ્ચિમ વિસ્તાર', time_slot: '09:00 AM થી 11:00 AM', status: 'Upcoming' }
+];
+
 const WaterSupply: React.FC = () => {
-  // --- STATE ---
   const [updates, setUpdates] = useState<WaterUpdate[]>([]);
   const [complaints, setComplaints] = useState<Complaint[]>([]);
   const [tankLevel, setTankLevel] = useState<number>(75);
-  const [notice, setNotice] = useState<string>('');
-  const [noticeDate, setNoticeDate] = useState<string>('');
+  const [notice, setNotice] = useState<string>('આજે લાઈટ જવાથી પાણી ૧ કલાક મોડું આવશે.');
+  const [noticeDate, setNoticeDate] = useState<string>(new Date().toLocaleDateString('gu-IN'));
   
   const [loading, setLoading] = useState(true);
 
@@ -46,62 +49,15 @@ const WaterSupply: React.FC = () => {
   const [complaintDetails, setComplaintDetails] = useState('');
   const [showComplaintForm, setShowComplaintForm] = useState(false);
 
-  // --- DB INIT & FETCH ---
-  const initDb = async () => {
-    try {
-        // 1. Water Schedule Table
-        await pool.query(`CREATE TABLE IF NOT EXISTS water_schedule (
-            id SERIAL PRIMARY KEY, line_name TEXT, area TEXT, time_slot TEXT, status TEXT
-        )`);
-        // 2. Complaints Table
-        await pool.query(`CREATE TABLE IF NOT EXISTS water_complaints (
-            id SERIAL PRIMARY KEY, name TEXT, details TEXT, date_str TEXT, status TEXT
-        )`);
-        // 3. Settings Table (Tank Level & Notice)
-        await pool.query(`CREATE TABLE IF NOT EXISTS water_settings (
-            key TEXT PRIMARY KEY, value TEXT
-        )`);
-        
-        // Insert defaults if missing
-        await pool.query(`INSERT INTO water_settings (key, value) VALUES ('tank_level', '75') ON CONFLICT DO NOTHING`);
-        await pool.query(`INSERT INTO water_settings (key, value) VALUES ('notice', 'પાણી રાબેતા મુજબ આવશે.') ON CONFLICT DO NOTHING`);
-        await pool.query(`INSERT INTO water_settings (key, value) VALUES ('notice_date', '${new Date().toLocaleDateString('gu-IN')}') ON CONFLICT DO NOTHING`);
-
-    } catch (e) {
-        console.error("DB Init Error", e);
-    }
-  };
-
-  const fetchData = async () => {
-    setLoading(true);
-    try {
-        await initDb();
-
-        // Fetch Schedule
-        const schedRes = await pool.query('SELECT * FROM water_schedule ORDER BY id DESC');
-        setUpdates(schedRes.rows);
-
-        // Fetch Complaints
-        const compRes = await pool.query('SELECT * FROM water_complaints ORDER BY id DESC');
-        setComplaints(compRes.rows);
-
-        // Fetch Settings
-        const setRes = await pool.query('SELECT * FROM water_settings');
-        setRes.rows.forEach((row: any) => {
-            if (row.key === 'tank_level') setTankLevel(parseInt(row.value));
-            if (row.key === 'notice') setNotice(row.value);
-            if (row.key === 'notice_date') setNoticeDate(row.value);
-        });
-
-    } catch (e) {
-        console.error("Fetch Error", e);
-    } finally {
-        setLoading(false);
-    }
-  };
-
   useEffect(() => {
-    fetchData();
+    // Simulated Fetch
+    const savedSchedule = localStorage.getItem('water_schedule');
+    const savedComplaints = localStorage.getItem('water_complaints');
+    
+    setUpdates(savedSchedule ? JSON.parse(savedSchedule) : initialSchedule);
+    setComplaints(savedComplaints ? JSON.parse(savedComplaints) : []);
+    
+    setLoading(false);
   }, []);
 
   // --- HANDLERS ---
@@ -110,66 +66,42 @@ const WaterSupply: React.FC = () => {
     else { alert('ખોટો પિન!'); }
   };
 
-  // 1. Update Tank Level
-  const updateTankLevel = async (val: number) => {
-      setTankLevel(val);
-      await pool.query(`UPDATE water_settings SET value = $1 WHERE key = 'tank_level'`, [val.toString()]);
-  };
-
-  // 2. Update Notice
-  const updateNotice = async (text: string) => {
-      setNotice(text);
-      const today = new Date().toLocaleDateString('gu-IN');
-      setNoticeDate(today);
-      await pool.query(`UPDATE water_settings SET value = $1 WHERE key = 'notice'`, [text]);
-      await pool.query(`UPDATE water_settings SET value = $1 WHERE key = 'notice_date'`, [today]);
-  };
-
-  // 3. Add Schedule
-  const handleAddUpdate = async (e: React.FormEvent) => {
+  const handleAddUpdate = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newLineName.trim()) return;
     const timeSlot = `${startTime} ${startAmPm} થી ${endTime} ${endAmPm}`;
-    
-    await pool.query(
-        `INSERT INTO water_schedule (line_name, area, time_slot, status) VALUES ($1, $2, $3, $4)`,
-        [newLineName, newArea, timeSlot, newStatus]
-    );
-    fetchData();
+    const newItem: WaterUpdate = {
+        id: Date.now(),
+        line_name: newLineName,
+        area: newArea,
+        time_slot: timeSlot,
+        status: newStatus
+    };
+    const newUpdates = [newItem, ...updates];
+    setUpdates(newUpdates);
+    localStorage.setItem('water_schedule', JSON.stringify(newUpdates));
     setNewLineName(''); setNewArea('');
-    alert('શેડ્યૂલ ઉમેરાઈ ગયું.');
   };
 
-  const handleDeleteUpdate = async (id: number) => {
-      if(window.confirm('ડિલીટ કરવું છે?')) {
-          await pool.query('DELETE FROM water_schedule WHERE id = $1', [id]);
-          setUpdates(updates.filter(u => u.id !== id));
-      }
+  const handleDeleteUpdate = (id: number) => {
+      const newUpdates = updates.filter(u => u.id !== id);
+      setUpdates(newUpdates);
+      localStorage.setItem('water_schedule', JSON.stringify(newUpdates));
   };
 
-  // 4. Complaints
-  const handleSubmitComplaint = async (e: React.FormEvent) => {
+  const handleSubmitComplaint = (e: React.FormEvent) => {
     e.preventDefault();
-    const dateStr = new Date().toLocaleDateString('gu-IN');
-    
-    await pool.query(
-        `INSERT INTO water_complaints (name, details, date_str, status) VALUES ($1, $2, $3, 'Pending')`,
-        [complainerName, complaintDetails, dateStr]
-    );
-    
-    fetchData();
+    const newItem: Complaint = {
+        id: Date.now(),
+        name: complainerName,
+        details: complaintDetails,
+        date_str: new Date().toLocaleDateString('gu-IN'),
+        status: 'Pending'
+    };
+    const newComplaints = [newItem, ...complaints];
+    setComplaints(newComplaints);
+    localStorage.setItem('water_complaints', JSON.stringify(newComplaints));
     setComplainerName(''); setComplaintDetails(''); setShowComplaintForm(false);
     alert('ફરિયાદ નોંધાઈ ગઈ.');
-  };
-
-  const resolveComplaint = async (id: number) => {
-      await pool.query(`UPDATE water_complaints SET status = 'Resolved' WHERE id = $1`, [id]);
-      fetchData();
-  };
-
-  const deleteComplaint = async (id: number) => {
-      await pool.query('DELETE FROM water_complaints WHERE id = $1', [id]);
-      setComplaints(complaints.filter(c => c.id !== id));
   };
 
   if (loading) return <div className="text-center py-10">Loading Water Data...</div>;
@@ -253,7 +185,8 @@ const WaterSupply: React.FC = () => {
          )}
 
          <div className="space-y-3">
-             {complaints.slice(0, 5).map(c => (
+             {complaints.length === 0 ? <p className="text-xs text-center text-orange-400">કોઈ ફરિયાદ નથી.</p> :
+             complaints.slice(0, 5).map(c => (
                  <div key={c.id} className="bg-white p-3 rounded-lg border border-orange-100 flex justify-between">
                      <div>
                          <p className="text-sm font-bold">{c.name}</p>
@@ -261,13 +194,7 @@ const WaterSupply: React.FC = () => {
                          <p className="text-[10px] text-gray-400">{c.date_str}</p>
                      </div>
                      <div>
-                        <span className={`text-[10px] px-2 py-1 rounded-full font-bold ${c.status === 'Resolved' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'}`}>{c.status}</span>
-                        {isAdmin && (
-                            <div className="flex flex-col gap-1 mt-1">
-                                <button onClick={() => resolveComplaint(c.id)} className="text-[10px] text-green-600">Solve</button>
-                                <button onClick={() => deleteComplaint(c.id)} className="text-[10px] text-red-600">Del</button>
-                            </div>
-                        )}
+                        <span className="text-[10px] px-2 py-1 rounded-full font-bold bg-yellow-100 text-yellow-700">{c.status}</span>
                      </div>
                  </div>
              ))}
@@ -285,12 +212,12 @@ const WaterSupply: React.FC = () => {
                   
                   <div className="mb-4">
                       <label className="text-xs">Notice Update</label>
-                      <textarea value={notice} onChange={e => updateNotice(e.target.value)} className="w-full text-black p-2 rounded text-sm"/>
+                      <textarea value={notice} onChange={e => setNotice(e.target.value)} className="w-full text-black p-2 rounded text-sm"/>
                   </div>
                   
                   <div className="mb-4">
                       <label className="text-xs">Tank Level: {tankLevel}%</label>
-                      <input type="range" min="0" max="100" value={tankLevel} onChange={e => updateTankLevel(parseInt(e.target.value))} className="w-full" />
+                      <input type="range" min="0" max="100" value={tankLevel} onChange={e => setTankLevel(parseInt(e.target.value))} className="w-full" />
                   </div>
 
                   <form onSubmit={handleAddUpdate} className="space-y-2 border-t border-gray-600 pt-2">
